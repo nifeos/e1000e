@@ -143,7 +143,7 @@ impl SimulatedHardware {
         self.mdic_log.push(value);
         let register = (value & management_data_interface_control::REGISTER_MASK)
             >> management_data_interface_control::REGISTER_SHIFT;
-        let address =
+        let physical_layer_device_number =
             value >> management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT & 0x1f;
         if !self.physical_layer_device_answers() {
             self.mac.insert(
@@ -154,13 +154,13 @@ impl SimulatedHardware {
             );
             return;
         }
-        let offset = if address == 1
+        let offset = if physical_layer_device_number == 1
             && register == physical_layer_device::IGP01E1000_PHYSICAL_LAYER_DEVICE_PAGE_SELECT
         {
             None
-        } else if address == 1 {
+        } else if physical_layer_device_number == 1 {
             let page = if self.page == 0 {
-                physical_layer_device::FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_ADDRESS_ONE
+                physical_layer_device::FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE
             } else {
                 self.page
             };
@@ -366,14 +366,14 @@ mod tests {
     }
 
     #[test]
-    fn a_paged_register_is_reached_through_a_page_select_at_address_one() {
+    fn a_paged_register_is_reached_through_a_page_select_at_device_number_one() {
         assert_eq!(
             plan_paged_access(
                 physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER
             ),
             Ok(physical_layer_device::PagedAccessPlan {
                 select: Some((769 << 5) as u16),
-                physical_layer_device_address: 1,
+                physical_layer_device_number: 1,
                 register: 23
             })
         );
@@ -392,7 +392,7 @@ mod tests {
             ),
             Ok(physical_layer_device::PagedAccessPlan {
                 select: None,
-                physical_layer_device_address: 2,
+                physical_layer_device_number: 2,
                 register: 2
             })
         );
@@ -490,7 +490,7 @@ mod tests {
             physical_layer_device::read_management_data_input_output(
                 &mut s,
                 2,
-                physical_layer_device::MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS
+                physical_layer_device::MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER
             )
             .is_ok()
         );
@@ -525,12 +525,12 @@ mod tests {
     fn the_physical_layer_device_id_is_both_words_without_the_revision() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         assert_eq!(
-            physical_layer_device::read_identifier_at_address(&mut s, 2),
+            physical_layer_device::read_identifier_at_device_number(&mut s, 2),
             Ok(PHYSICAL_LAYER_DEVICE_ID)
         );
         let mut dead = SimulatedHardware::new(PhysicalLayerDeviceStartState::Dead, true);
         assert_eq!(
-            physical_layer_device::read_identifier_at_address(&mut dead, 2),
+            physical_layer_device::read_identifier_at_device_number(&mut dead, 2),
             Err(PhysicalLayerDeviceError::ManagementDataInterface)
         );
     }

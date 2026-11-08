@@ -1,7 +1,7 @@
 //! **Reaching the PHY: management data input output (MDIO) through `MDIC`, under the software/firmware semaphore.**
 //!
 //! [`read_management_data_input_output`] and [`write_management_data_input_output`] are the MDIO primitive the 82574L shares. Of the rest, only
-//! [`read_identifier_at_address`] applies to an 82574L, which has no pages and no semaphore. [`read()`] and [`write()`]
+//! [`read_identifier_at_device_number`] applies to an 82574L, which has no pages and no semaphore. [`read()`] and [`write()`]
 //! are the paged access every PCH PHY register above page 0 needs, and each takes a [`SoftwareFlag`],
 //! which only [`SoftwareFlag::acquire`] makes. That type stands where FreeBSD writes "Assumes
 //! semaphore already acquired" comments. The FreeBSD sources are `e1000_phy.c` (the `MDIC` and
@@ -99,7 +99,7 @@ pub mod management_data_interface_control {
     pub(crate) const REGISTER_SHIFT: u32 = 16;
     /// The register field.
     pub(crate) const REGISTER_MASK: u32 = 0x001f_0000;
-    /// The PHY address field's shift.
+    /// The shift of the PHY number field, the PHY's position on the management bus.
     pub(crate) const PHYSICAL_LAYER_DEVICE_SHIFT: u32 = 21;
     /// Read opcode.
     pub(crate) const OPERATION_READ: u32 = 0x0800_0000;
@@ -121,20 +121,20 @@ pub mod management_data_interface_control {
     pub const POLL_MICROSECONDS: u64 = 50;
 }
 
-/// The highest MDIO register number (`MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS`).
-pub(crate) const MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS: u32 = 0x1f;
+/// The highest MDIO register number (`MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER`).
+pub(crate) const MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER: u32 = 0x1f;
 /// Registers above this one sit behind a page select (`MAXIMUM_PHYSICAL_LAYER_DEVICE_MULTI_PAGE_REGISTER`).
 pub(crate) const MAXIMUM_PHYSICAL_LAYER_DEVICE_MULTI_PAGE_REGISTER: u32 = 0xf;
 /// The page-select register (`IGP01E1000_PHYSICAL_LAYER_DEVICE_PAGE_SELECT`).
 pub(crate) const IGP01E1000_PHYSICAL_LAYER_DEVICE_PAGE_SELECT: u32 = 0x1f;
 /// How a page and a register pack into one offset (`PHYSICAL_LAYER_DEVICE_PAGE_SHIFT`).
 pub(crate) const PHYSICAL_LAYER_DEVICE_PAGE_SHIFT: u32 = 5;
-/// The first page reached at PHY address 1 rather than 2: OpenBSD's `HV_INTC_FC_PAGE_START`
+/// The first page reached at PHY number 1 (the PHY's position on the management bus) rather than 2: OpenBSD's `HV_INTC_FC_PAGE_START`
 /// (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `e1000_phy.h` spells the same. No source expands
 /// `INTC_FC`, so the name says what the page is instead, and says whose address: the physical
 /// layer device's, not a register's. It is selected as page 0.
 #[doc(alias = "HV_INTC_FC_PAGE_START")]
-pub(crate) const FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_ADDRESS_ONE: u32 = 768;
+pub(crate) const FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE: u32 = 768;
 /// The host wakeup page (`BM_WUC_PAGE`), refused.
 pub(crate) const BM_WUC_PAGE: u32 = 800;
 
@@ -148,7 +148,7 @@ pub(crate) const MAXIMUM_PAGE: u32 = 0x7ff;
 // there is, so the function's OR-to-XOR swap is an equivalent mutant.
 #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
 const _: () = assert!(
-    (u32::MAX << PHYSICAL_LAYER_DEVICE_PAGE_SHIFT) & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS
+    (u32::MAX << PHYSICAL_LAYER_DEVICE_PAGE_SHIFT) & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER
         == 0
 );
 
@@ -157,7 +157,7 @@ const _: () = assert!(
 #[doc(alias = "PHY_REG")]
 pub const fn paged_offset(page: u32, register: u32) -> u32 {
     page << PHYSICAL_LAYER_DEVICE_PAGE_SHIFT
-        | (register & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS)
+        | (register & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER)
 }
 
 /// The PHY's registers this crate addresses, from FreeBSD's `e1000_defines.h`, `e1000_phy.h` and
@@ -257,23 +257,23 @@ pub(crate) const EXTCNF_CTRL_SWFLAG: u32 = 0x0000_0020;
 /// `FWSM.RSPCIPHY`: clear while firmware blocks a PHY reset.
 pub(crate) const ICH_FWSM_RSPCIPHY: u32 = 0x0000_0040;
 
-/// One MDIO read of `register` at PHY address `physical_layer_device_address`,
+/// One MDIO read of `register` at `physical_layer_device_number`, the PHY's position on the management bus,
 /// `e1000_read_phy_reg_mdic`. It goes through the `MDIC` register (the management data
 /// input/output control register).
 #[doc(alias = "mdic")]
 #[doc(alias = "e1000_read_phy_reg_mdic")]
 pub fn read_management_data_input_output(
     hardware: &mut impl Hardware,
-    physical_layer_device_address: u32,
+    physical_layer_device_number: u32,
     register: u32,
 ) -> Result<u16, Error> {
-    if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS {
+    if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER {
         return Err(Error::OutOfRange);
     }
     hardware.write(
         super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER,
         register << management_data_interface_control::REGISTER_SHIFT
-            | physical_layer_device_address
+            | physical_layer_device_number
                 << management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
             | management_data_interface_control::OPERATION_READ,
     );
@@ -286,18 +286,18 @@ pub fn read_management_data_input_output(
 #[doc(alias = "e1000_write_phy_reg_mdic")]
 pub fn write_management_data_input_output(
     hardware: &mut impl Hardware,
-    physical_layer_device_address: u32,
+    physical_layer_device_number: u32,
     register: u32,
     data: u16,
 ) -> Result<(), Error> {
-    if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS {
+    if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER {
         return Err(Error::OutOfRange);
     }
     hardware.write(
         super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER,
         u32::from(data)
             | register << management_data_interface_control::REGISTER_SHIFT
-            | physical_layer_device_address
+            | physical_layer_device_number
                 << management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
             | management_data_interface_control::OPERATION_WRITE,
     );
@@ -395,9 +395,10 @@ impl SoftwareFlag {
     pub(crate) fn lost_to_reset(self) {}
 }
 
-/// Which PHY address a page lives at (`e1000_get_phy_addr_for_hv_page`).
-pub(crate) const fn address_for(page: u32) -> u32 {
-    if page >= FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_ADDRESS_ONE {
+/// Which PHY number, the PHY's position on the management bus, a page lives at
+/// (`e1000_get_phy_addr_for_hv_page`).
+pub(crate) const fn physical_layer_device_number_for(page: u32) -> u32 {
+    if page >= FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE {
         1
     } else {
         2
@@ -410,8 +411,8 @@ pub(crate) const fn address_for(page: u32) -> u32 {
 pub struct PagedAccessPlan {
     /// `Some(value)` when the page-select register is written first (at PHY address 1).
     pub select: Option<u16>,
-    /// The PHY address of the access itself.
-    pub physical_layer_device_address: u32,
+    /// The PHY number of the access itself: its position on the management bus.
+    pub physical_layer_device_number: u32,
     /// The five-bit register.
     pub register: u32,
 }
@@ -420,16 +421,16 @@ pub struct PagedAccessPlan {
 /// this port carries. Pure, so it is host-tested and model-checked.
 pub const fn plan_paged_access(offset: u32) -> Result<PagedAccessPlan, Error> {
     let page = offset >> PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
-    let register = offset & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS;
+    let register = offset & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER;
     if page == BM_WUC_PAGE
-        || (page > 0 && page < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_ADDRESS_ONE)
+        || (page > 0 && page < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE)
         || page > MAXIMUM_PAGE
     {
         return Err(Error::PageNotPorted);
     }
-    let physical_layer_device_address = address_for(page);
+    let physical_layer_device_number = physical_layer_device_number_for(page);
     // Page 768 is selected as page 0 (FreeBSD: "if (page == HV_INTC_FC_PAGE_START) page = 0").
-    let shown = if page == FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_ADDRESS_ONE {
+    let shown = if page == FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE {
         0
     } else {
         page
@@ -441,7 +442,7 @@ pub const fn plan_paged_access(offset: u32) -> Result<PagedAccessPlan, Error> {
     };
     Ok(PagedAccessPlan {
         select,
-        physical_layer_device_address,
+        physical_layer_device_number,
         register,
     })
 }
@@ -457,7 +458,7 @@ pub fn read(hardware: &mut impl Hardware, _held: &SoftwareFlag, offset: u32) -> 
             sel,
         )?;
     }
-    read_management_data_input_output(hardware, p.physical_layer_device_address, p.register)
+    read_management_data_input_output(hardware, p.physical_layer_device_number, p.register)
 }
 
 /// Write a PCH PHY register by its paged offset. FreeBSD's 82578 power-down workaround in the
@@ -477,7 +478,7 @@ pub fn write(
             sel,
         )?;
     }
-    write_management_data_input_output(hardware, p.physical_layer_device_address, p.register, data)
+    write_management_data_input_output(hardware, p.physical_layer_device_number, p.register, data)
 }
 
 /// Read-modify-write under a held flag.
@@ -513,18 +514,18 @@ const _: () = assert!(((u16::MAX as u32) << 16) & (u16::MAX as u32) == 0);
 
 /// Read the PHY identifier at the 82574L's address, the generic MDIO path with no pages and no
 /// semaphore (the 82574L has neither). What QEMU's gates prove of this module.
-pub fn read_identifier_at_address(
+pub fn read_identifier_at_device_number(
     hardware: &mut impl Hardware,
-    physical_layer_device_address: u32,
+    physical_layer_device_number: u32,
 ) -> Result<u32, Error> {
     let high = read_management_data_input_output(
         hardware,
-        physical_layer_device_address,
+        physical_layer_device_number,
         registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER,
     )?;
     let low = read_management_data_input_output(
         hardware,
-        physical_layer_device_address,
+        physical_layer_device_number,
         registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER,
     )?;
     Ok((u32::from(high) << 16 | u32::from(low)) & PHYSICAL_LAYER_DEVICE_REVISION_MASK)
@@ -535,7 +536,7 @@ mod proofs {
     use super::*;
 
     /// Falsification: replayable `falsifications/platform_controller_hub.physical_layer_device.proofs.a_paged_access_selects_the_offsets_own_page_and_register.patch`
-    /// **Every paged access this port will make names a PHY address that exists (1 or 2), a
+    /// **Every paged access this port will make names a PHY number, a position on the management bus, that exists (1 or 2), a
     /// five-bit register that is the offset's own, and a page select that is the offset's page**
     /// (768 shown as 0), written only when the register is above the unpaged range.
     ///
@@ -544,13 +545,13 @@ mod proofs {
         let off: u32 = kani::any();
         if let Ok(p) = plan_paged_access(off) {
             let page = off >> PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
-            assert!(p.physical_layer_device_address == 1 || p.physical_layer_device_address == 2);
-            assert!(p.register == off & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS);
+            assert!(p.physical_layer_device_number == 1 || p.physical_layer_device_number == 2);
+            assert!(p.register == off & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER);
             assert!(page != BM_WUC_PAGE);
             match p.select {
                 Some(sel) => {
                     assert!(p.register > MAXIMUM_PHYSICAL_LAYER_DEVICE_MULTI_PAGE_REGISTER);
-                    let shown = if page == FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_ADDRESS_ONE {
+                    let shown = if page == FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE {
                         0
                     } else {
                         page

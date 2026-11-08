@@ -865,7 +865,7 @@ fn local_area_network_connected_device_configuration(
             physical_layer_device::write(
                 hardware,
                 &f,
-                (at & physical_layer_device::MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS) | page,
+                (at & physical_layer_device::MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER) | page,
                 value,
             )?;
         }
