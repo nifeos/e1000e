@@ -46,8 +46,8 @@ mod supported_devices;
 pub use control_registers::{
     DEVICE_CONTROL_AUTO_SPEED_DETECTION_ENABLE, DEVICE_CONTROL_GLOBAL_RESET,
     DEVICE_CONTROL_SET_LINK_UP, DEVICE_STATUS_LINK_UP, EXTENDED_DEVICE_CONTROL_DRIVER_LOAD,
-    RECEIVE_ADDRESS_HIGH_ADDRESS_VALID, RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE,
-    receive_control_register_value, station_address_from_receive_address,
+    RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE, RECEIVE_MAC_ADDRESS_HIGH_VALID,
+    receive_control_register_value, station_mac_address_from_receive_words,
     transmit_control_register_value, transmit_inter_packet_gap_register_value,
 };
 pub use data_plane::{DataPlane, DirectMemoryAccessRegion, Tails, TransmitError};

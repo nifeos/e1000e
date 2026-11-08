@@ -9,7 +9,7 @@ Expected to fail: the harness's first assertion, on any index of 256 or more.
 diff --git a/src/layout.rs b/src/layout.rs
 --- a/src/layout.rs
 +++ b/src/layout.rs
-@@ -26,7 +26,7 @@
+@@ -25,7 +25,7 @@
  }
  /// Receive descriptor `index`'s offset.
  pub const fn receive_descriptor(index: u16) -> u64 {

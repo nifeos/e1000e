@@ -173,27 +173,28 @@ pub mod registers {
     /// **PHY Identifier, Word 1** (`PHY_ID1`, FreeBSD's `e1000_defines.h`). The high word.
     #[doc(alias = "physical layer device identifier, word 1")]
     #[doc(alias = "PHY_ID1")]
-    pub(crate) const PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1: u32 = 0x02;
+    pub(crate) const PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER: u32 = 0x02;
     /// **PHY Identifier, Word 2** (`PHY_ID2`, FreeBSD's `e1000_defines.h`). The low word and the
     /// revision.
     #[doc(alias = "physical layer device identifier, word 2")]
     #[doc(alias = "PHY_ID2")]
-    pub(crate) const PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2: u32 = 0x03;
+    pub(crate) const PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER: u32 = 0x03;
     /// **Autonegotiation Advertisement** (`PHY_AUTONEG_ADV`, FreeBSD's `e1000_defines.h`).
     #[doc(alias = "autonegotiation advertisement")]
     #[doc(alias = "PHY_AUTONEG_ADV")]
-    pub(crate) const PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT: u32 = 0x04;
+    pub(crate) const PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT_REGISTER: u32 = 0x04;
     /// **1000BASE-T Control** (`PHY_1000T_CTRL`, FreeBSD's `e1000_defines.h`).
     #[doc(alias = "1000base-t control")]
     #[doc(alias = "PHY_1000T_CTRL")]
-    pub(crate) const PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL: u32 = 0x09;
+    pub(crate) const PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL_REGISTER: u32 = 0x09;
     /// **82577 Configuration** (`I82577_CFG_REG`, FreeBSD's `e1000_phy.h`).
     #[doc(alias = "82577 configuration")]
-    pub(crate) const I82577_CFG_REG: u32 = 22;
+    #[doc(alias = "I82577_CFG_REG")]
+    pub(crate) const I82577_CONFIGURATION_REGISTER: u32 = 22;
     /// **82577 PHY Control 2** (`I82577_PHY_CTRL_2`, FreeBSD's `e1000_phy.h`).
     #[doc(alias = "82577 physical layer device control 2")]
     #[doc(alias = "I82577_PHY_CTRL_2")]
-    pub(crate) const I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2: u32 = 18;
+    pub(crate) const I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2_REGISTER: u32 = 18;
     /// **Kumeran Mode Control** (OpenBSD's `HV_KMRN_MODE_CTRL`, with `I2_MODE_CTRL` as its I217
     /// name, `sys/dev/pci/if_em_hw.h`; FreeBSD's `HV_KMRN_MODE_CTRL`, `e1000_ich8lan.h`). Page 769,
     /// register 16. Kumeran is the interconnect between the MAC and this PHY. The register was
@@ -207,11 +208,13 @@ pub mod registers {
     /// **Port General Configuration** (`BM_PORT_GEN_CFG`, FreeBSD's `e1000_ich8lan.h`). Page 769,
     /// register 17.
     #[doc(alias = "port general configuration")]
-    pub(crate) const BM_PORT_GEN_CFG: u32 = paged_offset(769, 17);
+    #[doc(alias = "BM_PORT_GEN_CFG")]
+    pub(crate) const BM_PORT_GENERAL_CONFIGURATION_REGISTER: u32 = paged_offset(769, 17);
     /// **System Management Bus Control** (`CV_SMB_CTRL`, FreeBSD's `e1000_ich8lan.h`). Page 769,
     /// register 23.
     #[doc(alias = "system management bus control")]
-    pub(crate) const CV_SMB_CTRL: u32 = paged_offset(769, 23);
+    #[doc(alias = "CV_SMB_CTRL")]
+    pub(crate) const CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER: u32 = paged_offset(769, 23);
     /// **Power Management Control** (OpenBSD's `HV_PM_CTRL`, `sys/dev/pci/if_em_hw.h`; FreeBSD's
     /// `HV_PM_CTRL`, `e1000_ich8lan.h`). Page 770, register 17: the PHY's power management, with
     /// the K1 enable bit. OpenBSD also names the same offset `IGP3_KMRN_POWER_MNG_CTRL`.
@@ -268,7 +271,7 @@ pub fn read_management_data_input_output(
         return Err(Error::OutOfRange);
     }
     hardware.write(
-        super::registers::MDIC,
+        super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER,
         register << management_data_interface_control::REGISTER_SHIFT
             | physical_layer_device_address
                 << management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
@@ -291,7 +294,7 @@ pub fn write_management_data_input_output(
         return Err(Error::OutOfRange);
     }
     hardware.write(
-        super::registers::MDIC,
+        super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER,
         u32::from(data)
             | register << management_data_interface_control::REGISTER_SHIFT
             | physical_layer_device_address
@@ -306,7 +309,7 @@ fn complete(hardware: &mut impl Hardware, register: u32) -> Result<u32, Error> {
     let mut v = 0;
     for _ in 0..management_data_interface_control::POLLS {
         hardware.delay_microseconds(management_data_interface_control::POLL_MICROSECONDS);
-        v = hardware.read(super::registers::MDIC);
+        v = hardware.read(super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER);
         if v & management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY
             != 0
         {
@@ -343,7 +346,8 @@ impl SoftwareFlag {
         let mut extended_control = 0;
         let mut free = false;
         for _ in 0..SOFTWARE_FLAG_FREE_MILLISECONDS {
-            extended_control = hardware.read(super::registers::EXTCNF_CTRL);
+            extended_control =
+                hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
             if extended_control & EXTCNF_CTRL_SWFLAG == 0 {
                 free = true;
                 break;
@@ -354,16 +358,20 @@ impl SoftwareFlag {
             return Err(Error::SoftwareFlagHeld);
         }
         extended_control |= EXTCNF_CTRL_SWFLAG;
-        hardware.write(super::registers::EXTCNF_CTRL, extended_control);
+        hardware.write(
+            super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+            extended_control,
+        );
         for _ in 0..SOFTWARE_FLAG_TAKE_MILLISECONDS {
-            extended_control = hardware.read(super::registers::EXTCNF_CTRL);
+            extended_control =
+                hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
             if extended_control & EXTCNF_CTRL_SWFLAG != 0 {
                 return Ok(SoftwareFlag(()));
             }
             hardware.delay_microseconds(1000);
         }
         hardware.write(
-            super::registers::EXTCNF_CTRL,
+            super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
             extended_control & !EXTCNF_CTRL_SWFLAG,
         );
         Err(Error::SoftwareFlagRefused)
@@ -372,10 +380,11 @@ impl SoftwareFlag {
     /// `e1000_release_swflag_ich8lan`. Clears the bit only if it is still set; FreeBSD logs the
     /// other case ("Semaphore unexpectedly released") and so does nothing here.
     pub fn release(self, hardware: &mut impl Hardware) {
-        let extended_control = hardware.read(super::registers::EXTCNF_CTRL);
+        let extended_control =
+            hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
         if extended_control & EXTCNF_CTRL_SWFLAG != 0 {
             hardware.write(
-                super::registers::EXTCNF_CTRL,
+                super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
                 extended_control & !EXTCNF_CTRL_SWFLAG,
             );
         }
@@ -486,7 +495,7 @@ pub fn update(
 /// 31 times 10 ms apart, as FreeBSD does.
 pub(crate) fn reset_blocked(hardware: &mut impl Hardware) -> bool {
     for i in 0..=30 {
-        if hardware.read(super::registers::FWSM) & ICH_FWSM_RSPCIPHY != 0 {
+        if hardware.read(super::registers::FIRMWARE_SEMAPHORE_REGISTER) & ICH_FWSM_RSPCIPHY != 0 {
             return false;
         }
         if i < 30 {
@@ -511,12 +520,12 @@ pub fn read_identifier_at_address(
     let high = read_management_data_input_output(
         hardware,
         physical_layer_device_address,
-        registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1,
+        registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER,
     )?;
     let low = read_management_data_input_output(
         hardware,
         physical_layer_device_address,
-        registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2,
+        registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER,
     )?;
     Ok((u32::from(high) << 16 | u32::from(low)) & PHYSICAL_LAYER_DEVICE_REVISION_MASK)
 }

@@ -85,7 +85,7 @@ pub const HARDWARE_SEQUENCING_FLASH_STATUS_REGISTER: u64 = 0x04;
 /// Flash linear address (OpenBSD's `ICH_FLASH_FADDR`).
 #[doc(alias = "FADDR")]
 #[doc(alias = "ICH_FLASH_FADDR")]
-pub(crate) const FLASH_LINEAR_ADDRESS_REGISTER: u64 = 0x08;
+pub(crate) const FLASH_LINEAR_BYTE_OFFSET_REGISTER: u64 = 0x08;
 /// Flash data 0 (OpenBSD's `ICH_FLASH_FDATA0`).
 #[doc(alias = "FDATA0")]
 #[doc(alias = "ICH_FLASH_FDATA0")]
@@ -140,7 +140,7 @@ const _: () =
     assert!((3u16 << flash_control::BYTE_COUNT_SHIFT) & !flash_control::BYTE_COUNT_MASK == 0);
 
 /// `ICH_FLASH_LINEAR_ADDR_MASK`.
-pub(crate) const LINEAR_ADDRESS_MASK: u32 = 0x00ff_ffff;
+pub(crate) const LINEAR_BYTE_OFFSET_MASK: u32 = 0x00ff_ffff;
 /// `ICH_FLASH_READ_COMMAND_TIMEOUT`, in 1 µs polls: ten seconds, FreeBSD's bound.
 pub(crate) const READ_COMMAND_TIMEOUT: u32 = 10_000_000;
 /// `ICH_FLASH_CYCLE_REPEAT_COUNT`.
@@ -155,8 +155,8 @@ pub(crate) const SIGNATURE_VALUE: u8 = 0x80;
 /// FreeBSD's `e1000_hw.h`.
 #[doc(alias = "E1000_SHADOW_RAM_WORDS")]
 pub const SHADOW_RAM_WORDS: u32 = 2048;
-/// `NVM_SIZE_MULTIPLIER`.
-pub(crate) const NVM_SIZE_MULTIPLIER: u32 = 4096;
+/// `NVM_SIZE_MULTIPLIER_BYTES`.
+pub(crate) const NVM_SIZE_MULTIPLIER_BYTES: u32 = 4096;
 
 /// The NVM's size, from `STRAP` on SPT.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -169,14 +169,14 @@ impl Geometry {
     /// `e1000_init_nvm_params_ich8lan`'s SPT branch: `STRAP` bits 5:1 hold the size in 4 KiB
     /// units, minus one; the NVM is two banks.
     pub(crate) const fn from_strap(strap: u32) -> Self {
-        let bytes = ((strap >> 1 & 0x1f) + 1) * NVM_SIZE_MULTIPLIER;
+        let bytes = ((strap >> 1 & 0x1f) + 1) * NVM_SIZE_MULTIPLIER_BYTES;
         Geometry {
             bank_words: bytes / 2 / 2,
         }
     }
     /// Read the strap register and decode the size from it.
     pub fn read_from_hardware(hardware: &mut impl Hardware) -> Self {
-        Self::from_strap(hardware.read(super::registers::STRAP))
+        Self::from_strap(hardware.read(super::registers::STRAP_REGISTER))
     }
 }
 
@@ -246,7 +246,7 @@ fn cycle(hardware: &mut impl Hardware) -> Result<(), Error> {
 /// `byte`.
 #[doc(alias = "dword")]
 pub(crate) fn read_u32_at_byte(hardware: &mut impl Hardware, byte: u32) -> Result<u32, Error> {
-    if byte > LINEAR_ADDRESS_MASK {
+    if byte > LINEAR_BYTE_OFFSET_MASK {
         return Err(Error::OutOfRange);
     }
     let mut last = Err(Error::Cycle);
@@ -264,8 +264,8 @@ pub(crate) fn read_u32_at_byte(hardware: &mut impl Hardware, byte: u32) -> Resul
             u32::from(flash_control) << 16,
         );
         hardware.write(
-            FLASH_REGISTERS_OFFSET_BYTES + FLASH_LINEAR_ADDRESS_REGISTER,
-            byte & LINEAR_ADDRESS_MASK,
+            FLASH_REGISTERS_OFFSET_BYTES + FLASH_LINEAR_BYTE_OFFSET_REGISTER,
+            byte & LINEAR_BYTE_OFFSET_MASK,
         );
         last = cycle(hardware);
         if last.is_ok() {

@@ -20,7 +20,7 @@ pub const DESCRIPTOR_RING_FLUSH_REQUIRED: u16 = 0x100;
 #[doc(alias = "E1000_FEXTNVM11_DISABLE_MULR_FIX")]
 pub const FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_DISABLE_MULR_FIX: u32 = 0x0000_2000;
 /// The dummy transmit's length: FreeBSD sends 512 bytes of the ring itself.
-pub(crate) const TRANSMIT_DUMMY_LENGTH: u16 = 512;
+pub(crate) const TRANSMIT_DUMMY_LENGTH_BYTES: u16 = 512;
 
 /// Is a flush required, given the status word and `TDLEN`? FreeBSD flushes nothing when the
 /// transmit ring has no length.
@@ -31,12 +31,12 @@ pub const fn is_flush_required(status: u16, transmit_descriptor_length: u32) -> 
 // identically; the compiler checks that here, so the word's
 // OR-to-XOR swap is an equivalent mutant.
 #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
-const _: () = assert!((TRANSMIT_DUMMY_LENGTH as u64) & (0x02u64 << 24) == 0);
+const _: () = assert!((TRANSMIT_DUMMY_LENGTH_BYTES as u64) & (0x02u64 << 24) == 0);
 
 /// The dummy transmit descriptor's second word: insert FCS, 512 bytes, no end of packet and no
 /// status report, exactly FreeBSD's `txd_lower`.
 pub const fn dummy_transmit_descriptor_command_word() -> u64 {
-    TRANSMIT_DUMMY_LENGTH as u64 | (0x02u64 << 24)
+    TRANSMIT_DUMMY_LENGTH_BYTES as u64 | (0x02u64 << 24)
 }
 /// **The one divergence.** FreeBSD writes the dummy at its own completion cursor and then
 /// writes that same index to `TDT`. This driver has no completion cursor at reset time, so it
@@ -115,9 +115,9 @@ pub fn empty_descriptor_rings(
     use crate::control_registers::{RECEIVE_CONTROL_ENABLE, TRANSMIT_CONTROL_ENABLE};
     use crate::registers::{
         RECEIVE_CONTROL_REGISTER, TRANSMIT_CONTROL_REGISTER,
-        TRANSMIT_DESCRIPTOR_BASE_ADDRESS_HIGH_REGISTER,
-        TRANSMIT_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER, TRANSMIT_DESCRIPTOR_LENGTH_REGISTER,
-        TRANSMIT_DESCRIPTOR_TAIL_REGISTER,
+        TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER,
+        TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER,
+        TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER, TRANSMIT_DESCRIPTOR_TAIL_REGISTER,
     };
     let extended = hardware.read(super::registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_REGISTER);
     hardware.write(
@@ -125,13 +125,16 @@ pub fn empty_descriptor_rings(
         extended | FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_DISABLE_MULR_FIX,
     );
     let status = rings.descriptor_ring_status();
-    if !is_flush_required(status, hardware.read(TRANSMIT_DESCRIPTOR_LENGTH_REGISTER)) {
+    if !is_flush_required(
+        status,
+        hardware.read(TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER),
+    ) {
         return EmptiedRings::NotRequired;
     }
     // The halves share no bit, so their sum is the joined address, and unlike an OR no mutation of
     // the sum survives a test that gives both halves a value.
-    let base = u64::from(hardware.read(TRANSMIT_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER))
-        + (u64::from(hardware.read(TRANSMIT_DESCRIPTOR_BASE_ADDRESS_HIGH_REGISTER)) << 32);
+    let base = u64::from(hardware.read(TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER))
+        + (u64::from(hardware.read(TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER)) << 32);
     if base != transmit_ring {
         return EmptiedRings::ForeignTransmitRing { base };
     }

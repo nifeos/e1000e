@@ -198,7 +198,7 @@ const STATUS_PHYRA: u32 = 0x0000_0400;
 // Others, each named for its FreeBSD define.
 const EXTCNF_CTRL_GATE_PHYSICAL_LAYER_DEVICE_CONFIGURATION: u32 = 0x0000_0080;
 const EXTCNF_CTRL_EXT_CNF_POINTER_MASK: u32 = 0x0fff_0000;
-const EXTCNF_SIZE_EXT_PCI_EXPRESS_LENGTH_MASK: u32 = 0x00ff_0000;
+const EXTCNF_SIZE_EXT_PCI_EXPRESS_LENGTH_WORDS_MASK: u32 = 0x00ff_0000;
 const FEXTNVM_SOFTWARE_CONFIGURATION_ICH8M: u32 = 1 << 27;
 const FEXTNVM3_PHYSICAL_LAYER_DEVICE_CONFIGURATION_COUNTER_MASK: u32 = 0x0c00_0000;
 const FEXTNVM3_PHYSICAL_LAYER_DEVICE_CONFIGURATION_COUNTER_50_MILLISECONDS: u32 = 0x0800_0000;
@@ -300,7 +300,7 @@ fn clear(hardware: &mut impl Hardware, offset: u64, bits: u32) {
 }
 
 fn has_management_engine(hardware: &mut impl Hardware) -> bool {
-    ultra_low_power::has_management_engine(hardware.read(registers::FWSM))
+    ultra_low_power::has_management_engine(hardware.read(registers::FIRMWARE_SEMAPHORE_REGISTER))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -327,7 +327,7 @@ pub fn initialize_physical_layer_device_workarounds(
     // Gate automatic PHY configuration by hardware; this driver configures it in `global_reset`.
     set(
         hardware,
-        registers::EXTCNF_CTRL,
+        registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
         EXTCNF_CTRL_GATE_PHYSICAL_LAYER_DEVICE_CONFIGURATION,
     );
 
@@ -393,14 +393,16 @@ pub fn initialize_physical_layer_device_workarounds(
 /// when not. Reports rather than returns, as its caller does.
 fn leave_ultra_low_power(hardware: &mut impl Hardware) {
     if has_management_engine(hardware) {
-        let h = hardware.read(registers::H2ME);
+        let h = hardware.read(registers::HOST_TO_MANAGEMENT_ENGINE_REGISTER);
         hardware.write(
-            registers::H2ME,
+            registers::HOST_TO_MANAGEMENT_ENGINE_REGISTER,
             ultra_low_power::register_value_requesting_exit(h),
         );
         let mut cleared = false;
         for i in 0..=ultra_low_power::MANAGEMENT_ENGINE_WAIT_MILLISECONDS / 10 {
-            if ultra_low_power::is_configuration_done(hardware.read(registers::FWSM)) {
+            if ultra_low_power::is_configuration_done(
+                hardware.read(registers::FIRMWARE_SEMAPHORE_REGISTER),
+            ) {
                 cleared = true;
                 break;
             }
@@ -409,9 +411,9 @@ fn leave_ultra_low_power(hardware: &mut impl Hardware) {
             }
         }
         if cleared {
-            let h = hardware.read(registers::H2ME);
+            let h = hardware.read(registers::HOST_TO_MANAGEMENT_ENGINE_REGISTER);
             hardware.write(
-                registers::H2ME,
+                registers::HOST_TO_MANAGEMENT_ENGINE_REGISTER,
                 ultra_low_power::register_value_releasing_request(h),
             );
         }
@@ -434,7 +436,7 @@ fn leave_ultra_low_power_by_physical_layer_device(
         let v = match physical_layer_device::read(
             hardware,
             &f,
-            physical_layer_device::registers::CV_SMB_CTRL,
+            physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER,
         ) {
             Ok(v) => v,
             Err(_) => {
@@ -447,7 +449,7 @@ fn leave_ultra_low_power_by_physical_layer_device(
                 physical_layer_device::read(
                     hardware,
                     &f,
-                    physical_layer_device::registers::CV_SMB_CTRL,
+                    physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER,
                 )?
             }
         };
@@ -455,7 +457,7 @@ fn leave_ultra_low_power_by_physical_layer_device(
         let _ = physical_layer_device::write(
             hardware,
             &f,
-            physical_layer_device::registers::CV_SMB_CTRL,
+            physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER,
             v & !CV_SMB_CTRL_FORCE_SMBUS,
         );
         clear(
@@ -494,7 +496,11 @@ fn leave_ultra_low_power_by_physical_layer_device(
             physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
             u | I218_ULTRA_LOW_POWER_CONFIGURATION1_START,
         );
-        clear(hardware, registers::FEXTNVM7, FEXTNVM7_DISABLE_SMB_PERST);
+        clear(
+            hardware,
+            registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_7_REGISTER,
+            FEXTNVM7_DISABLE_SMB_PERST,
+        );
         Ok(())
     })();
     f.release(hardware);
@@ -523,7 +529,7 @@ fn accessible(hardware: &mut impl Hardware, flag: &SoftwareFlag, id: &mut u32) -
         last = physical_layer_device::read(
             hardware,
             flag,
-            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER,
         );
         let Ok(high) = last else { continue };
         if high == 0xffff {
@@ -532,7 +538,7 @@ fn accessible(hardware: &mut impl Hardware, flag: &SoftwareFlag, id: &mut u32) -
         last = physical_layer_device::read(
             hardware,
             flag,
-            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER,
         );
         let Ok(low) = last else { continue };
         if low == 0xffff {
@@ -555,12 +561,12 @@ fn accessible(hardware: &mut impl Hardware, flag: &SoftwareFlag, id: &mut u32) -
         if let Ok(v) = physical_layer_device::read(
             hardware,
             flag,
-            physical_layer_device::registers::CV_SMB_CTRL,
+            physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER,
         ) {
             let _ = physical_layer_device::write(
                 hardware,
                 flag,
-                physical_layer_device::registers::CV_SMB_CTRL,
+                physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER,
                 v & !CV_SMB_CTRL_FORCE_SMBUS,
             );
         }
@@ -587,9 +593,9 @@ const _: () = assert!(
 /// **`e1000_toggle_lanphypc_pch_lpt`**: fully power-cycle the PHY by driving the `LANPHYPC` pin
 /// low for a millisecond, then wait for the hardware's "`LCD` power cycle done".
 fn toggle_lanphypc(hardware: &mut impl Hardware) {
-    let n3 = hardware.read(registers::FEXTNVM3);
+    let n3 = hardware.read(registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_3_REGISTER);
     hardware.write(
-        registers::FEXTNVM3,
+        registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_3_REGISTER,
         (n3 & !FEXTNVM3_PHYSICAL_LAYER_DEVICE_CONFIGURATION_COUNTER_MASK)
             | FEXTNVM3_PHYSICAL_LAYER_DEVICE_CONFIGURATION_COUNTER_50_MILLISECONDS,
     );
@@ -697,7 +703,7 @@ pub fn global_reset(
     hardware: &mut impl Hardware,
     reset_wait_milliseconds: u64,
 ) -> Result<(), Error> {
-    hardware.write(registers::PBA, PBA_26K);
+    hardware.write(registers::PACKET_BUFFER_ALLOCATION_REGISTER, PBA_26K);
 
     // `e1000_disable_pcie_master_generic`: stop new bus-master requests, wait for pending ones.
     set(
@@ -717,7 +723,7 @@ pub fn global_reset(
         hardware.note(BringUpObservation::MasterRequestsPending);
     }
 
-    hardware.write(mac::INTERRUPT_MASK_CLEAR_REGISTER, u32::MAX);
+    hardware.write(mac::INTERRUPT_CLEAR_MASK_REGISTER, u32::MAX);
     hardware.write(mac::RECEIVE_CONTROL_REGISTER, 0);
     hardware.write(
         mac::TRANSMIT_CONTROL_REGISTER,
@@ -740,7 +746,7 @@ pub fn global_reset(
     // "Configuration space access creates the needed delay." Written to the read-only STRAP so
     // the read happens before the reset, and again before any MAC access after it.
     let v = hardware.pci_vendor_id();
-    hardware.write(registers::STRAP, u32::from(v));
+    hardware.write(registers::STRAP_REGISTER, u32::from(v));
     hardware.write(
         mac::DEVICE_CONTROL_REGISTER,
         device_control | crate::DEVICE_CONTROL_GLOBAL_RESET,
@@ -748,7 +754,7 @@ pub fn global_reset(
     // "cannot issue a flush here because it hangs the hardware"
     delay_milliseconds(hardware, 20);
     let v = hardware.pci_vendor_id();
-    hardware.write(registers::STRAP, u32::from(v));
+    hardware.write(registers::STRAP_REGISTER, u32::from(v));
 
     let mut cleared = false;
     for _ in 0..reset_wait_milliseconds {
@@ -766,9 +772,13 @@ pub fn global_reset(
         configuration_done(hardware)?;
         post_physical_layer_device_reset(hardware)?;
     }
-    hardware.write(mac::INTERRUPT_MASK_CLEAR_REGISTER, u32::MAX);
+    hardware.write(mac::INTERRUPT_CLEAR_MASK_REGISTER, u32::MAX);
     let _ = hardware.read(mac::INTERRUPT_CAUSE_READ_REGISTER);
-    set(hardware, registers::KABGTXD, reset::KABGTXD_BGSQLBIAS);
+    set(
+        hardware,
+        registers::ANALOG_FRONT_END_BAND_GAP_TRANSMIT_REFERENCE_DATA_REGISTER,
+        reset::KABGTXD_BGSQLBIAS,
+    );
     Ok(())
 }
 
@@ -785,13 +795,13 @@ fn post_physical_layer_device_reset(hardware: &mut impl Hardware) -> Result<(), 
         match physical_layer_device::read(
             hardware,
             &f,
-            physical_layer_device::registers::BM_PORT_GEN_CFG,
+            physical_layer_device::registers::BM_PORT_GENERAL_CONFIGURATION_REGISTER,
         ) {
             Ok(v) => {
                 let _ = physical_layer_device::write(
                     hardware,
                     &f,
-                    physical_layer_device::registers::BM_PORT_GEN_CFG,
+                    physical_layer_device::registers::BM_PORT_GENERAL_CONFIGURATION_REGISTER,
                     v & !BM_WUC_HOST_WU_BIT,
                 );
             }
@@ -814,19 +824,23 @@ fn local_area_network_connected_device_configuration(
 ) -> Result<(), Error> {
     let f = SoftwareFlag::acquire(hardware)?;
     let out = (|| {
-        if hardware.read(registers::FEXTNVM) & FEXTNVM_SOFTWARE_CONFIGURATION_ICH8M == 0 {
+        if hardware.read(registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_REGISTER)
+            & FEXTNVM_SOFTWARE_CONFIGURATION_ICH8M
+            == 0
+        {
             return Ok(None);
         }
-        let extended_control = hardware.read(registers::EXTCNF_CTRL);
-        let size =
-            (hardware.read(registers::EXTCNF_SIZE) & EXTCNF_SIZE_EXT_PCI_EXPRESS_LENGTH_MASK) >> 16;
+        let extended_control = hardware.read(registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+        let size = (hardware.read(registers::EXTENDED_CONFIGURATION_SIZE_WORDS_REGISTER)
+            & EXTCNF_SIZE_EXT_PCI_EXPRESS_LENGTH_WORDS_MASK)
+            >> 16;
         if size == 0 {
             return Ok(None);
         }
         let base = (extended_control & EXTCNF_CTRL_EXT_CNF_POINTER_MASK) >> 16;
         // Past the 82578 generation the hardware leaves these to software.
         write_system_management_bus_address(hardware, &f)?;
-        let led = hardware.read(registers::LEDCTL) as u16;
+        let led = hardware.read(registers::LED_CONTROL_REGISTER) as u16;
         physical_layer_device::write(
             hardware,
             &f,
@@ -894,17 +908,18 @@ fn write_system_management_bus_address(
     hardware: &mut impl Hardware,
     flag: &SoftwareFlag,
 ) -> Result<(), Error> {
-    let strap = hardware.read(registers::STRAP);
+    let strap = hardware.read(registers::STRAP_REGISTER);
     let freq = ((strap & STRAP_SMT_FREQ_MASK) >> STRAP_SMT_FREQ_SHIFT) as u16;
-    let address = ((strap & STRAP_SYSTEM_MANAGEMENT_BUS_ADDRESS_MASK)
-        >> STRAP_SYSTEM_MANAGEMENT_BUS_ADDRESS_SHIFT) as u16;
+    let system_management_bus_address = ((strap & STRAP_SYSTEM_MANAGEMENT_BUS_ADDRESS_MASK)
+        >> STRAP_SYSTEM_MANAGEMENT_BUS_ADDRESS_SHIFT)
+        as u16;
     let mut v = physical_layer_device::read(
         hardware,
         flag,
         physical_layer_device::registers::SYSTEM_MANAGEMENT_BUS_ADDRESS_REGISTER,
     )?;
     v = (v & !SYSTEM_MANAGEMENT_BUS_ADDRESS_MASK)
-        | address
+        | system_management_bus_address
         | SYSTEM_MANAGEMENT_BUS_ADDRESS_PACKET_ERROR_CHECKING_ENABLE
         | SYSTEM_MANAGEMENT_BUS_ADDRESS_VALID;
     if freq != 0 {
@@ -934,7 +949,10 @@ const _: () = assert!(OEM_BITS_GIGABIT_DISABLE & OEM_BITS_LOW_POWER_LINK_UP == 0
 fn oem_bits(hardware: &mut impl Hardware) -> Result<(), Error> {
     let f = SoftwareFlag::acquire(hardware)?;
     let out = (|| {
-        if hardware.read(registers::FEXTNVM) & FEXTNVM_SOFTWARE_CONFIGURATION_ICH8M == 0 {
+        if hardware.read(registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_REGISTER)
+            & FEXTNVM_SOFTWARE_CONFIGURATION_ICH8M
+            == 0
+        {
             return Ok(());
         }
         let pc = hardware.read(registers::PHYSICAL_LAYER_DEVICE_CONTROL_REGISTER);
@@ -1000,20 +1018,31 @@ pub fn initialize_hardware(hardware: &mut impl Hardware) -> Result<(), Error> {
         mac::EXTENDED_DEVICE_CONTROL_REGISTER,
         1 << 22 | CTRL_EXT_PHYPDEN,
     );
-    set(hardware, registers::TXDCTL0, 1 << 22);
-    set(hardware, registers::TXDCTL1, 1 << 22);
     set(
         hardware,
-        registers::TARC0,
+        registers::TRANSMIT_DESCRIPTOR_CONTROL_0_REGISTER,
+        1 << 22,
+    );
+    set(
+        hardware,
+        registers::TRANSMIT_DESCRIPTOR_CONTROL_1_REGISTER,
+        1 << 22,
+    );
+    set(
+        hardware,
+        registers::TRANSMIT_ARBITRATION_COUNT_0_REGISTER,
         1 << 23 | 1 << 24 | 1 << 26 | 1 << 27,
     );
-    let mut t1 = hardware.read(registers::TARC1);
+    let mut t1 = hardware.read(registers::TRANSMIT_ARBITRATION_COUNT_1_REGISTER);
     if hardware.read(mac::TRANSMIT_CONTROL_REGISTER) & TCTL_MULR != 0 {
         t1 &= !(1 << 28);
     } else {
         t1 |= 1 << 28;
     }
-    hardware.write(registers::TARC1, t1 | 1 << 24 | 1 << 26 | 1 << 30);
+    hardware.write(
+        registers::TRANSMIT_ARBITRATION_COUNT_1_REGISTER,
+        t1 | 1 << 24 | 1 << 26 | 1 << 30,
+    );
     // "work-around descriptor data corruption issue during nfs v2 udp traffic"
     set(
         hardware,
@@ -1021,7 +1050,11 @@ pub fn initialize_hardware(hardware: &mut impl Hardware) -> Result<(), Error> {
         RFCTL_NFSW_DIS | RFCTL_NFSR_DIS,
     );
     // "Enable ECC on Lynxpoint"
-    set(hardware, registers::PBECCSTS, PBECCSTS_ECC_ENABLE);
+    set(
+        hardware,
+        registers::PACKET_BUFFER_ERROR_CORRECTING_CODE_STATUS_REGISTER,
+        PBECCSTS_ECC_ENABLE,
+    );
     set(hardware, mac::DEVICE_CONTROL_REGISTER, CTRL_MEHE);
 
     // `e1000_setup_link_ich8lan`: the copper link, unless firmware blocks the PHY.
@@ -1029,7 +1062,10 @@ pub fn initialize_hardware(hardware: &mut impl Hardware) -> Result<(), Error> {
         setup_copper_link(hardware)?;
     }
 
-    for q in [registers::TXDCTL0, registers::TXDCTL1] {
+    for q in [
+        registers::TRANSMIT_DESCRIPTOR_CONTROL_0_REGISTER,
+        registers::TRANSMIT_DESCRIPTOR_CONTROL_1_REGISTER,
+    ] {
         let t = hardware.read(q);
         let t = (t & !TXDCTL_WTHRESH) | TXDCTL_FULL_TRANSMIT_DESCRIPTOR_WRITE_BACK;
         hardware.write(
@@ -1094,13 +1130,13 @@ pub fn setup_copper_link(hardware: &mut impl Hardware) -> Result<(), Error> {
         physical_layer_device::update(
             hardware,
             &f,
-            physical_layer_device::registers::I82577_CFG_REG,
+            physical_layer_device::registers::I82577_CONFIGURATION_REGISTER,
             |v| v | I82577_CONFIGURATION_ASSERT_CRS_ON_TRANSMIT | I82577_CFG_ENABLE_DOWNSHIFT,
         )?;
         physical_layer_device::update(
             hardware,
             &f,
-            physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2,
+            physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2_REGISTER,
             |v| {
                 (v & !I82577_PHYSICAL_LAYER_DEVICE_CTRL2_MDIX_CONFIGURATION_MASK)
                     | I82577_PHYSICAL_LAYER_DEVICE_CTRL2_AUTO_MDI_MDIX
@@ -1109,7 +1145,7 @@ pub fn setup_copper_link(hardware: &mut impl Hardware) -> Result<(), Error> {
         physical_layer_device::update(
             hardware,
             &f,
-            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT_REGISTER,
             |v| {
                 (v & !(NWAY_AR_ASYMMETRIC_PAUSE_DIRECTION | NWAY_AR_PAUSE))
                     | NWAY_AR_10_MEGABITS_HALF_DUPLEX_CAPABILITY
@@ -1121,7 +1157,7 @@ pub fn setup_copper_link(hardware: &mut impl Hardware) -> Result<(), Error> {
         physical_layer_device::update(
             hardware,
             &f,
-            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL_REGISTER,
             |v| {
                 (v & !CR_1000_MEGABITS_HALF_DUPLEX_CAPABILITY)
                     | CR_1000_MEGABITS_FULL_DUPLEX_CAPABILITY
@@ -1148,10 +1184,14 @@ const _: () = assert!(TARC0_CB_MULTIQ_2_REQ & !TARC0_CB_MULTIQ_3_REQ == 0);
 /// (Intel's "i218-i219 Specification Update 1.5.4.5", cited by FreeBSD, not read here).
 pub fn transmit_errata(hardware: &mut impl Hardware) {
     set(hardware, mac::TRANSMIT_CONTROL_REGISTER, TCTL_MULR);
-    set(hardware, registers::IOSFPC, RCTL_RDMTS_HEX);
-    let t = hardware.read(registers::TARC0);
+    set(
+        hardware,
+        registers::IOSF_POWER_CONTROL_REGISTER,
+        RCTL_RDMTS_HEX,
+    );
+    let t = hardware.read(registers::TRANSMIT_ARBITRATION_COUNT_0_REGISTER);
     hardware.write(
-        registers::TARC0,
+        registers::TRANSMIT_ARBITRATION_COUNT_0_REGISTER,
         (t & !TARC0_CB_MULTIQ_3_REQ) | TARC0_CB_MULTIQ_2_REQ,
     );
 }
@@ -1220,7 +1260,7 @@ mod tests {
     fn the_management_engine_gets_two_and_a_half_seconds_to_leave_ulp() {
         let mut hardware = Inert::default();
         hardware.registers.insert(
-            registers::FWSM,
+            registers::FIRMWARE_SEMAPHORE_REGISTER,
             ultra_low_power::ICH_FWSM_FW_VALID | ultra_low_power::FWSM_ULP_CFG_DONE,
         );
         leave_ultra_low_power(&mut hardware);
@@ -1230,7 +1270,7 @@ mod tests {
             hardware
                 .reads
                 .iter()
-                .filter(|&&o| o == registers::FWSM)
+                .filter(|&&o| o == registers::FIRMWARE_SEMAPHORE_REGISTER)
                 .count(),
             1 + 251
         );
@@ -1239,14 +1279,15 @@ mod tests {
             [BringUpObservation::ManagementEngineUltraLowPowerExit { cleared: false }]
         );
         assert_eq!(
-            hardware.registers[&registers::H2ME],
+            hardware.registers[&registers::HOST_TO_MANAGEMENT_ENGINE_REGISTER],
             ultra_low_power::H2ME_ENFORCE_SETTINGS
         );
 
         let mut hardware = Inert::default();
-        hardware
-            .registers
-            .insert(registers::FWSM, ultra_low_power::ICH_FWSM_FW_VALID);
+        hardware.registers.insert(
+            registers::FIRMWARE_SEMAPHORE_REGISTER,
+            ultra_low_power::ICH_FWSM_FW_VALID,
+        );
         leave_ultra_low_power(&mut hardware);
         assert_eq!(hardware.elapsed_microseconds, 0);
         assert_eq!(
@@ -1254,7 +1295,7 @@ mod tests {
             [BringUpObservation::ManagementEngineUltraLowPowerExit { cleared: true }]
         );
         assert_eq!(
-            hardware.written(registers::H2ME),
+            hardware.written(registers::HOST_TO_MANAGEMENT_ENGINE_REGISTER),
             [ultra_low_power::H2ME_ENFORCE_SETTINGS, 0]
         );
     }
@@ -1267,13 +1308,19 @@ mod tests {
     #[test]
     fn the_lanphypc_toggle_moves_only_its_own_bits_and_waits_for_lpcd() {
         let mut hardware = Inert::default();
-        hardware.registers.insert(registers::FEXTNVM3, 0x0c00_00ff);
+        hardware.registers.insert(
+            registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_3_REGISTER,
+            0x0c00_00ff,
+        );
         // SLU, with the override and the value bit both left set by someone else.
         hardware
             .registers
             .insert(mac::DEVICE_CONTROL_REGISTER, 0x0003_0040);
         toggle_lanphypc(&mut hardware);
-        assert_eq!(hardware.registers[&registers::FEXTNVM3], 0x0800_00ff);
+        assert_eq!(
+            hardware.registers[&registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_3_REGISTER],
+            0x0800_00ff
+        );
         assert_eq!(
             hardware.written(mac::DEVICE_CONTROL_REGISTER),
             [0x0001_0040, 0x0000_0040]
@@ -1331,9 +1378,10 @@ mod tests {
     #[test]
     fn stuck_master_requests_are_waited_for_and_the_reset_still_goes_ahead() {
         let mut hardware = Inert::default();
-        hardware
-            .registers
-            .insert(registers::FWSM, physical_layer_device::ICH_FWSM_RSPCIPHY);
+        hardware.registers.insert(
+            registers::FIRMWARE_SEMAPHORE_REGISTER,
+            physical_layer_device::ICH_FWSM_RSPCIPHY,
+        );
         hardware
             .registers
             .insert(mac::DEVICE_STATUS_REGISTER, reset::STATUS_GIO_MASTER_ENABLE);
@@ -1365,13 +1413,22 @@ mod tests {
     #[test]
     fn the_post_reset_clears_host_wakeup_and_replays_only_when_asked() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::BM_PORT_GEN_CFG, 0x0011);
-        s.mac.insert(registers::EXTCNF_CTRL, 0x40 << 16);
-        s.mac.insert(registers::EXTCNF_SIZE, 3 << 16);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::BM_PORT_GENERAL_CONFIGURATION_REGISTER,
+            0x0011,
+        );
+        s.mac.insert(
+            registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+            0x40 << 16,
+        );
+        s.mac.insert(
+            registers::EXTENDED_CONFIGURATION_SIZE_WORDS_REGISTER,
+            3 << 16,
+        );
         global_reset(&mut s, 1000).unwrap();
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::BM_PORT_GEN_CFG],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::BM_PORT_GENERAL_CONFIGURATION_REGISTER],
             0x0001
         );
         assert!(
@@ -1397,7 +1454,7 @@ mod tests {
             (0, 0x1155, 0x1382),
         ] {
             let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
-            s.mac.insert(registers::STRAP, strap(2, freq));
+            s.mac.insert(registers::STRAP_REGISTER, strap(2, freq));
             s.physical_layer_device_registers.insert(
                 physical_layer_device::registers::SYSTEM_MANAGEMENT_BUS_ADDRESS_REGISTER,
                 preset,
@@ -1434,11 +1491,14 @@ mod tests {
             (sw, 0, 0x0000, true, 0x0000),
         ] {
             let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
-            s.mac.insert(registers::FEXTNVM, fextnvm);
+            s.mac.insert(
+                registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_REGISTER,
+                fextnvm,
+            );
             s.mac
                 .insert(registers::PHYSICAL_LAYER_DEVICE_CONTROL_REGISTER, pc);
             if blocked {
-                s.mac.insert(registers::FWSM, 0);
+                s.mac.insert(registers::FIRMWARE_SEMAPHORE_REGISTER, 0);
             }
             s.physical_layer_device_registers
                 .insert(physical_layer_device::registers::OEM_BITS_REGISTER, before);
@@ -1457,7 +1517,7 @@ mod tests {
     fn initialize_hardware_writes_freebsds_values_from_an_empty_device() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT_REGISTER,
             0x0c01,
         );
         initialize_hardware(&mut s).unwrap();
@@ -1466,37 +1526,53 @@ mod tests {
             0x0052_0000,
             "bit 22, PHYPDEN, RO_DIS"
         );
-        assert_eq!(mac(&s, registers::TXDCTL0), 0x0141_001f);
-        assert_eq!(mac(&s, registers::TXDCTL1), 0x0141_001f);
-        assert_eq!(mac(&s, registers::TARC0), 0x0d80_0000);
         assert_eq!(
-            mac(&s, registers::TARC1),
+            mac(&s, registers::TRANSMIT_DESCRIPTOR_CONTROL_0_REGISTER),
+            0x0141_001f
+        );
+        assert_eq!(
+            mac(&s, registers::TRANSMIT_DESCRIPTOR_CONTROL_1_REGISTER),
+            0x0141_001f
+        );
+        assert_eq!(
+            mac(&s, registers::TRANSMIT_ARBITRATION_COUNT_0_REGISTER),
+            0x0d80_0000
+        );
+        assert_eq!(
+            mac(&s, registers::TRANSMIT_ARBITRATION_COUNT_1_REGISTER),
             0x5500_0000,
             "MULR clear: bit 28 set"
         );
         assert_eq!(mac(&s, mac::RECEIVE_FILTER_CONTROL_REGISTER), 0x00c0);
-        assert_eq!(mac(&s, registers::PBECCSTS), 0x0001_0000);
+        assert_eq!(
+            mac(
+                &s,
+                registers::PACKET_BUFFER_ERROR_CORRECTING_CODE_STATUS_REGISTER
+            ),
+            0x0001_0000
+        );
         assert_eq!(
             mac(&s, mac::DEVICE_CONTROL_REGISTER),
             0x0008_0040,
             "MEHE and SLU"
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::I82577_CFG_REG],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::I82577_CONFIGURATION_REGISTER],
             0x8c00
         );
         assert_eq!(
             s.physical_layer_device_registers
-                [&physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2],
+                [&physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2_REGISTER],
             0x0400
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT],
+            s.physical_layer_device_registers[&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT_REGISTER],
             0x01e1
         );
         assert_eq!(
             s.physical_layer_device_registers
-                [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL],
+                [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL_REGISTER],
             0x0200
         );
         assert_eq!(
@@ -1513,25 +1589,33 @@ mod tests {
     fn initialize_hardware_writes_freebsds_values_over_bits_already_set() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         s.mac.insert(mac::TRANSMIT_CONTROL_REGISTER, TCTL_MULR);
-        s.mac.insert(registers::TARC1, 0x5500_00ff);
-        s.mac.insert(registers::TXDCTL0, 0x013f_ff3f);
+        s.mac.insert(
+            registers::TRANSMIT_ARBITRATION_COUNT_1_REGISTER,
+            0x5500_00ff,
+        );
+        s.mac.insert(
+            registers::TRANSMIT_DESCRIPTOR_CONTROL_0_REGISTER,
+            0x013f_ff3f,
+        );
         s.mac.insert(mac::RECEIVE_FILTER_CONTROL_REGISTER, 0x00c0);
         s.mac.insert(
             mac::DEVICE_CONTROL_REGISTER,
             crate::DEVICE_CONTROL_SET_LINK_UP | CTRL_FRCSPD | CTRL_FRCDPX,
         );
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::I82577_CFG_REG, 0x8c01);
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2,
+            physical_layer_device::registers::I82577_CONFIGURATION_REGISTER,
+            0x8c01,
+        );
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2_REGISTER,
             0x0601,
         );
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT_REGISTER,
             0x0de1,
         );
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL_REGISTER,
             0x0300,
         );
         s.physical_layer_device_registers.insert(
@@ -1540,11 +1624,14 @@ mod tests {
         );
         initialize_hardware(&mut s).unwrap();
         assert_eq!(
-            mac(&s, registers::TARC1),
+            mac(&s, registers::TRANSMIT_ARBITRATION_COUNT_1_REGISTER),
             0x4500_00ff,
             "MULR set: bit 28 cleared"
         );
-        assert_eq!(mac(&s, registers::TXDCTL0), 0x0141_ff1f);
+        assert_eq!(
+            mac(&s, registers::TRANSMIT_DESCRIPTOR_CONTROL_0_REGISTER),
+            0x0141_ff1f
+        );
         assert_eq!(mac(&s, mac::RECEIVE_FILTER_CONTROL_REGISTER), 0x00c0);
         assert_eq!(
             mac(&s, mac::DEVICE_CONTROL_REGISTER),
@@ -1552,21 +1639,22 @@ mod tests {
             "speed and duplex unforced"
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::I82577_CFG_REG],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::I82577_CONFIGURATION_REGISTER],
             0x8c01
         );
         assert_eq!(
             s.physical_layer_device_registers
-                [&physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2],
+                [&physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2_REGISTER],
             0x0401
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT],
+            s.physical_layer_device_registers[&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT_REGISTER],
             0x01e1
         );
         assert_eq!(
             s.physical_layer_device_registers
-                [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL],
+                [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL_REGISTER],
             0x0200
         );
         assert_eq!(
@@ -1581,14 +1669,23 @@ mod tests {
     #[test]
     fn the_transmit_errata_set_freebsds_three_values() {
         let mut hardware = Inert::default();
-        hardware.registers.insert(registers::TARC0, 0x3000_00ff);
+        hardware.registers.insert(
+            registers::TRANSMIT_ARBITRATION_COUNT_0_REGISTER,
+            0x3000_00ff,
+        );
         transmit_errata(&mut hardware);
         assert_eq!(
             hardware.registers[&mac::TRANSMIT_CONTROL_REGISTER],
             TCTL_MULR
         );
-        assert_eq!(hardware.registers[&registers::IOSFPC], 0x0001_0000);
-        assert_eq!(hardware.registers[&registers::TARC0], 0x2000_00ff);
+        assert_eq!(
+            hardware.registers[&registers::IOSF_POWER_CONTROL_REGISTER],
+            0x0001_0000
+        );
+        assert_eq!(
+            hardware.registers[&registers::TRANSMIT_ARBITRATION_COUNT_0_REGISTER],
+            0x2000_00ff
+        );
     }
 
     /// **Without a Management Engine, every write to `CV_SMB_CTRL` clears only the force bit, and K1 and the
@@ -1598,8 +1695,10 @@ mod tests {
     fn leaving_ulp_without_a_management_engine_changes_only_the_bits_it_names() {
         let mut s =
             SimulatedHardware::new(PhysicalLayerDeviceStartState::InSystemManagementBus, false);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::CV_SMB_CTRL, 0x0101);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER,
+            0x0101,
+        );
         s.physical_layer_device_registers.insert(
             physical_layer_device::registers::POWER_MANAGEMENT_CONTROL_REGISTER,
             0x4001,
@@ -1616,7 +1715,7 @@ mod tests {
                 .map(|w| w.1)
                 .collect()
         };
-        let smb = to(physical_layer_device::registers::CV_SMB_CTRL);
+        let smb = to(physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER);
         assert!(
             !smb.is_empty() && smb.iter().all(|&v| v == 0x0100),
             "{smb:x?}"

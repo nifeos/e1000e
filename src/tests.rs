@@ -84,8 +84,8 @@ impl SimulatedDevice {
             return false;
         }
         let d = layout::receive_descriptor(self.receive_head);
-        let address = self.read_u64(d);
-        let off = address - PHYSICAL_ADDRESS;
+        let buffer_physical_address = self.read_u64(d);
+        let off = buffer_physical_address - PHYSICAL_ADDRESS;
         assert_eq!(
             off,
             layout::receive_buffer(self.receive_head),
@@ -103,12 +103,12 @@ impl SimulatedDevice {
     fn drain_transmit(&mut self) {
         while u32::from(self.transmit_head) != self.transmit_tail {
             let d = layout::transmit_descriptor(self.transmit_head);
-            let address = self.read_u64(d);
+            let buffer_physical_address = self.read_u64(d);
             let word = self.read_u64(d + 8);
             assert_eq!((word >> 24) as u8, TRANSMIT_COMMAND);
             let len = (word & 0xffff) as usize;
             let mut f = vec![0; len];
-            self.read_bytes(address - PHYSICAL_ADDRESS, &mut f);
+            self.read_bytes(buffer_physical_address - PHYSICAL_ADDRESS, &mut f);
             self.sent.push(f);
             self.write_u64(d + 8, word | (TRANSMIT_STATUS_DESCRIPTOR_DONE as u64) << 32);
             self.transmit_head = (self.transmit_head + 1) % TRANSMIT_ENTRIES;
@@ -226,7 +226,7 @@ fn a_frame_larger_than_the_callers_room_is_dropped_not_truncated() {
 }
 
 #[test]
-fn a_device_that_overwrote_the_buffer_address_gets_it_back_on_repost() {
+fn a_device_that_overwrote_the_buffer_physical_address_gets_it_back_on_repost() {
     let (mut simulator, mut data_plane) = started();
     assert!(simulator.deliver(&frame(1, 64), 64, GOOD, 0));
     simulator.write_u64(layout::receive_descriptor(0), 0xdead_0000);
@@ -324,7 +324,7 @@ fn the_queue_pages_hold_the_tails_and_not_the_control_registers() {
     );
     // The finding: base and tail share a page, so the split cannot keep ring placement.
     assert_eq!(
-        registers::RECEIVE_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER & !0xfff,
+        registers::RECEIVE_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER & !0xfff,
         RECEIVE_QUEUE_PAGE
     );
     for r in [
@@ -332,9 +332,9 @@ fn the_queue_pages_hold_the_tails_and_not_the_control_registers() {
         registers::DEVICE_STATUS_REGISTER,
         registers::RECEIVE_CONTROL_REGISTER,
         registers::TRANSMIT_CONTROL_REGISTER,
-        registers::INTERRUPT_MASK_CLEAR_REGISTER,
-        registers::RECEIVE_ADDRESS_0_LOW_REGISTER,
-        registers::RECEIVE_ADDRESS_0_HIGH_REGISTER,
+        registers::INTERRUPT_CLEAR_MASK_REGISTER,
+        registers::RECEIVE_MAC_ADDRESS_0_LOW_REGISTER,
+        registers::RECEIVE_MAC_ADDRESS_0_HIGH_REGISTER,
         registers::RECEIVE_FILTER_CONTROL_REGISTER,
     ] {
         let page = r & !0xfff;
@@ -346,28 +346,28 @@ fn the_queue_pages_hold_the_tails_and_not_the_control_registers() {
 }
 
 #[test]
-fn the_station_address_reads_from_entry_zero_and_refuses_an_invalid_one() {
+fn the_station_mac_address_reads_from_entry_zero_and_refuses_an_invalid_one() {
     // QEMU's default, 52:54:00:12:34:56, as RAL/RAH hold it.
-    let receive_address_low = u32::from_le_bytes([0x52, 0x54, 0x00, 0x12]);
-    let receive_address_high =
-        u32::from_le_bytes([0x34, 0x56, 0, 0]) | RECEIVE_ADDRESS_HIGH_ADDRESS_VALID;
+    let receive_mac_address_low = u32::from_le_bytes([0x52, 0x54, 0x00, 0x12]);
+    let receive_mac_address_high =
+        u32::from_le_bytes([0x34, 0x56, 0, 0]) | RECEIVE_MAC_ADDRESS_HIGH_VALID;
     assert_eq!(
-        station_address_from_receive_address(receive_address_low, receive_address_high),
+        station_mac_address_from_receive_words(receive_mac_address_low, receive_mac_address_high),
         Some([0x52, 0x54, 0x00, 0x12, 0x34, 0x56])
     );
     assert_eq!(
-        station_address_from_receive_address(
-            receive_address_low,
-            receive_address_high & !RECEIVE_ADDRESS_HIGH_ADDRESS_VALID
+        station_mac_address_from_receive_words(
+            receive_mac_address_low,
+            receive_mac_address_high & !RECEIVE_MAC_ADDRESS_HIGH_VALID
         ),
         None
     );
     assert_eq!(
-        station_address_from_receive_address(0, RECEIVE_ADDRESS_HIGH_ADDRESS_VALID),
+        station_mac_address_from_receive_words(0, RECEIVE_MAC_ADDRESS_HIGH_VALID),
         None
     );
     assert_eq!(
-        station_address_from_receive_address(0x01, RECEIVE_ADDRESS_HIGH_ADDRESS_VALID),
+        station_mac_address_from_receive_words(0x01, RECEIVE_MAC_ADDRESS_HIGH_VALID),
         None,
         "a group address"
     );

@@ -176,9 +176,9 @@ fn flush_steps(
 ) -> (flush::EmptiedRings, std::vec::Vec<Step>) {
     use crate::registers::{
         RECEIVE_CONTROL_REGISTER, TRANSMIT_CONTROL_REGISTER,
-        TRANSMIT_DESCRIPTOR_BASE_ADDRESS_HIGH_REGISTER,
-        TRANSMIT_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER, TRANSMIT_DESCRIPTOR_LENGTH_REGISTER,
-        TRANSMIT_DESCRIPTOR_TAIL_REGISTER,
+        TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER,
+        TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER,
+        TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER, TRANSMIT_DESCRIPTOR_TAIL_REGISTER,
     };
     let log = Log::default();
     let values = [
@@ -187,13 +187,13 @@ fn flush_steps(
             // The bit the flush sets is already on, so an XOR in place of the OR would clear it.
             0x1 | flush::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_DISABLE_MULR_FIX,
         ),
-        (TRANSMIT_DESCRIPTOR_LENGTH_REGISTER, 256),
+        (TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER, 256),
         (
-            TRANSMIT_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER,
+            TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER,
             device_ring as u32,
         ),
         (
-            TRANSMIT_DESCRIPTOR_BASE_ADDRESS_HIGH_REGISTER,
+            TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER,
             (device_ring >> 32) as u32,
         ),
         // TRANSMIT_CONTROL_ENABLE (0x2) is already on, so an XOR in place of the OR would clear it.
@@ -229,7 +229,7 @@ fn the_flush_without_a_request_only_disables_the_mulr_fix() {
             Step::Read(registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_REGISTER),
             MULR_FIX_DISABLED,
             Step::Status,
-            Step::Read(crate::registers::TRANSMIT_DESCRIPTOR_LENGTH_REGISTER),
+            Step::Read(crate::registers::TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER),
         ]
     );
 }
@@ -263,9 +263,9 @@ fn the_flush_refuses_a_transmit_ring_that_is_not_the_callers() {
 fn the_flush_runs_both_rings_in_freebsds_order() {
     use crate::registers::{
         DEVICE_STATUS_REGISTER, RECEIVE_CONTROL_REGISTER, TRANSMIT_CONTROL_REGISTER,
-        TRANSMIT_DESCRIPTOR_BASE_ADDRESS_HIGH_REGISTER,
-        TRANSMIT_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER, TRANSMIT_DESCRIPTOR_LENGTH_REGISTER,
-        TRANSMIT_DESCRIPTOR_TAIL_REGISTER,
+        TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER,
+        TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER,
+        TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER, TRANSMIT_DESCRIPTOR_TAIL_REGISTER,
     };
     let ring = 0x1_0000_1000;
     let required = flush::DESCRIPTOR_RING_FLUSH_REQUIRED;
@@ -277,9 +277,9 @@ fn the_flush_runs_both_rings_in_freebsds_order() {
             Step::Read(registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_REGISTER),
             MULR_FIX_DISABLED,
             Step::Status,
-            Step::Read(TRANSMIT_DESCRIPTOR_LENGTH_REGISTER),
-            Step::Read(TRANSMIT_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER),
-            Step::Read(TRANSMIT_DESCRIPTOR_BASE_ADDRESS_HIGH_REGISTER),
+            Step::Read(TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER),
+            Step::Read(TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER),
+            Step::Read(TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER),
             Step::Read(TRANSMIT_CONTROL_REGISTER),
             Step::Write(TRANSMIT_CONTROL_REGISTER, 0x8 | 0x2),
             Step::Read(TRANSMIT_DESCRIPTOR_TAIL_REGISTER),

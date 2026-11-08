@@ -25,7 +25,7 @@ pub const INTERRUPT_CAUSE_READ_REGISTER: u64 = 0x0_00c0;
 #[doc(alias = "interrupt mask clear")]
 #[doc(alias = "E1000_IMC")]
 #[doc(alias = "IMC")]
-pub const INTERRUPT_MASK_CLEAR_REGISTER: u64 = 0x0_00d8;
+pub const INTERRUPT_CLEAR_MASK_REGISTER: u64 = 0x0_00d8;
 /// **Receive Control** (OpenBSD's `E1000_RCTL`, `sys/dev/pci/if_em_hw.h`).
 #[doc(alias = "receive control")]
 #[doc(alias = "E1000_RCTL")]
@@ -46,25 +46,25 @@ pub const TRANSMIT_INTER_PACKET_GAP_REGISTER: u64 = 0x0_0410;
 #[doc(alias = "receive descriptor base address low")]
 #[doc(alias = "E1000_RDBAL")]
 #[doc(alias = "RDBAL")]
-pub const RECEIVE_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER: u64 = 0x0_2800;
+pub const RECEIVE_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER: u64 = 0x0_2800;
 /// **Receive Descriptor Base Address High** (OpenBSD's `E1000_RDBAH(0)`, `sys/dev/pci/if_em_hw.h`). The high 32 bits.
 #[doc(alias = "receive descriptor base address high")]
 #[doc(alias = "E1000_RDBAH")]
 #[doc(alias = "RDBAH")]
-pub const RECEIVE_DESCRIPTOR_BASE_ADDRESS_HIGH_REGISTER: u64 = 0x0_2804;
+pub const RECEIVE_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER: u64 = 0x0_2804;
 /// **Receive Descriptor Length** (OpenBSD's `E1000_RDLEN(0)`, `sys/dev/pci/if_em_hw.h`). The ring length in bytes, a
 /// multiple of 128.
 #[doc(alias = "receive descriptor length")]
 #[doc(alias = "E1000_RDLEN")]
 #[doc(alias = "RDLEN")]
-pub const RECEIVE_DESCRIPTOR_LENGTH_REGISTER: u64 = 0x0_2808;
+pub const RECEIVE_DESCRIPTOR_LENGTH_BYTES_REGISTER: u64 = 0x0_2808;
 /// **Receive Descriptor Head** (OpenBSD's `E1000_RDH(0)`, `sys/dev/pci/if_em_hw.h`). The device's cursor.
 #[doc(alias = "receive descriptor head")]
 #[doc(alias = "E1000_RDH")]
 #[doc(alias = "RDH")]
 pub const RECEIVE_DESCRIPTOR_HEAD_REGISTER: u64 = 0x0_2810;
 /// **Receive Descriptor Tail** (OpenBSD's `E1000_RDT(0)`, `sys/dev/pci/if_em_hw.h`). The driver's cursor. **The same
-/// 4 KiB page as [`RECEIVE_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER`].**
+/// 4 KiB page as [`RECEIVE_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER`].**
 #[doc(alias = "receive descriptor tail")]
 #[doc(alias = "E1000_RDT")]
 #[doc(alias = "RDT")]
@@ -74,25 +74,25 @@ pub const RECEIVE_DESCRIPTOR_TAIL_REGISTER: u64 = 0x0_2818;
 #[doc(alias = "transmit descriptor base address low")]
 #[doc(alias = "E1000_TDBAL")]
 #[doc(alias = "TDBAL")]
-pub const TRANSMIT_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER: u64 = 0x0_3800;
+pub const TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER: u64 = 0x0_3800;
 /// **Transmit Descriptor Base Address High** (OpenBSD's `E1000_TDBAH(0)`, `sys/dev/pci/if_em_hw.h`). The high 32
 /// bits.
 #[doc(alias = "transmit descriptor base address high")]
 #[doc(alias = "E1000_TDBAH")]
 #[doc(alias = "TDBAH")]
-pub const TRANSMIT_DESCRIPTOR_BASE_ADDRESS_HIGH_REGISTER: u64 = 0x0_3804;
+pub const TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER: u64 = 0x0_3804;
 /// **Transmit Descriptor Length** (OpenBSD's `E1000_TDLEN(0)`, `sys/dev/pci/if_em_hw.h`). The ring length in bytes.
 #[doc(alias = "transmit descriptor length")]
 #[doc(alias = "E1000_TDLEN")]
 #[doc(alias = "TDLEN")]
-pub const TRANSMIT_DESCRIPTOR_LENGTH_REGISTER: u64 = 0x0_3808;
+pub const TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER: u64 = 0x0_3808;
 /// **Transmit Descriptor Head** (OpenBSD's `E1000_TDH(0)`, `sys/dev/pci/if_em_hw.h`).
 #[doc(alias = "transmit descriptor head")]
 #[doc(alias = "E1000_TDH")]
 #[doc(alias = "TDH")]
 pub const TRANSMIT_DESCRIPTOR_HEAD_REGISTER: u64 = 0x0_3810;
 /// **Transmit Descriptor Tail** (OpenBSD's `E1000_TDT(0)`, `sys/dev/pci/if_em_hw.h`). **The same 4 KiB page as
-/// [`TRANSMIT_DESCRIPTOR_BASE_ADDRESS_LOW_REGISTER`].**
+/// [`TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER`].**
 #[doc(alias = "transmit descriptor tail")]
 #[doc(alias = "E1000_TDT")]
 #[doc(alias = "TDT")]
@@ -114,16 +114,16 @@ pub const MULTICAST_TABLE_ARRAY_REGISTER: u64 = 0x0_5200;
 #[doc(alias = "E1000_NUM_MTA_REGISTERS")]
 #[doc(alias = "MTA_ENTRIES")]
 #[doc(alias = "dwords")]
-pub const MULTICAST_TABLE_ARRAY_ENTRIES: u64 = 128;
+pub const MULTICAST_TABLE_ARRAY_ENTRIES: u64 = 1 << 7;
 /// **Receive Address Low** (OpenBSD's `E1000_RAL(0)`, `sys/dev/pci/if_em_hw.h`). Entry 0: the MAC address's first
 /// four octets.
 #[doc(alias = "receive address low")]
 #[doc(alias = "E1000_RAL")]
 #[doc(alias = "RAL0")]
-pub const RECEIVE_ADDRESS_0_LOW_REGISTER: u64 = 0x0_5400;
+pub const RECEIVE_MAC_ADDRESS_0_LOW_REGISTER: u64 = 0x0_5400;
 /// **Receive Address High** (OpenBSD's `E1000_RAH(0)`, `sys/dev/pci/if_em_hw.h`). Entry 0: the last two octets, and
-/// [`super::RECEIVE_ADDRESS_HIGH_ADDRESS_VALID`].
+/// [`super::RECEIVE_MAC_ADDRESS_HIGH_VALID`].
 #[doc(alias = "receive address high")]
 #[doc(alias = "E1000_RAH")]
 #[doc(alias = "RAH0")]
-pub const RECEIVE_ADDRESS_0_HIGH_REGISTER: u64 = 0x0_5404;
+pub const RECEIVE_MAC_ADDRESS_0_HIGH_REGISTER: u64 = 0x0_5404;
