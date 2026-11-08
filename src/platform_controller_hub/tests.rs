@@ -61,7 +61,7 @@ fn the_flush_runs_only_when_asked_and_the_ring_has_length() {
 }
 
 /// The flush's register values exactly as FreeBSD writes them: the dummy descriptor is 512
-/// bytes with only IFCS (`txd_lower`), the tail moves one slot and wraps, and `RXDCTL` keeps
+/// bytes with only `IFCS` (`txd_lower`), the tail moves one slot and wraps, and `RXDCTL` keeps
 /// every bit above the two thresholds, including the granularity bit when it was already set.
 #[test]
 fn the_flush_values_are_freebsds() {
@@ -82,7 +82,7 @@ fn the_flush_values_are_freebsds() {
     );
 }
 
-/// The ME handshake touches only its own two bits: the request sets `ENFORCE_SETTINGS` even
+/// The Management Engine handshake touches only its own two bits: the request sets `ENFORCE_SETTINGS` even
 /// when it is already set, and the release clears it and nothing else.
 #[test]
 fn the_ulp_handshake_changes_only_its_own_bits() {

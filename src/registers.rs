@@ -103,7 +103,7 @@ pub const TRANSMIT_DESCRIPTOR_TAIL_REGISTER: u64 = 0x0_3818;
 #[doc(alias = "E1000_RFCTL")]
 #[doc(alias = "RFCTL")]
 pub const RECEIVE_FILTER_CONTROL_REGISTER: u64 = 0x0_5008;
-/// **Multicast Table Array** (OpenBSD's `E1000_MTA`, `sys/dev/pci/if_em_hw.h`). 128 32-bit entries, the DWORDs of
+/// **Multicast Table Array** (OpenBSD's `E1000_MTA`, `sys/dev/pci/if_em_hw.h`). 128 32-bit entries, the doublewords of
 /// Intel's documentation.
 #[doc(alias = "multicast table array")]
 #[doc(alias = "E1000_MTA")]

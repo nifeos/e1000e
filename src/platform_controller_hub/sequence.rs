@@ -52,7 +52,7 @@ use crate::registers as mac;
 pub enum Error {
     /// A PHY access failed.
     PhysicalLayerDevice(physical_layer_device::Error),
-    /// An NVM read failed, or no bank is valid ("EEPROM not present" in FreeBSD).
+    /// An NVM read failed, or no bank is valid (`"EEPROM not present"` in FreeBSD).
     NonVolatileMemory(non_volatile_memory::Error),
     /// The PHY did not answer after the `SMBus` force, the `LANPHYPC` power cycle and the unforce.
     PhysicalLayerDeviceInaccessible,
@@ -114,7 +114,7 @@ impl From<non_volatile_memory::Error> for Error {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum AccessPath {
-    /// At once: the interconnect was already PCIe.
+    /// At once: the interconnect was already `PCIe`.
     Directly,
     /// After forcing the MAC into System Management Bus (`SMBus`) mode.
     #[doc(alias = "smbus")]
@@ -136,7 +136,7 @@ pub enum BringUpObservation {
         /// `FWSM.ULP_CFG_DONE` cleared before [`ultra_low_power::MANAGEMENT_ENGINE_WAIT_MILLISECONDS`].
         cleared: bool,
     },
-    /// There is no ME; ULP was left by PHY registers, with this outcome.
+    /// There is no Management Engine; ULP was left by PHY registers, with this outcome.
     #[doc(alias = "ulp")]
     SoftwareUltraLowPowerExit(Result<(), Error>),
     /// The PHY answered, with this identifier (revision masked off).
@@ -160,7 +160,7 @@ pub enum BringUpObservation {
     /// Master requests were still pending when the reset went ahead.
     MasterRequestsPending,
     /// The NVM's extended configuration region was replayed into the local area network connected
-    /// device (Intel's LAN Connected Device, LCD, the PHY beside a PCH): this many words.
+    /// device (Intel's `LAN Connected Device`, `LCD`, the PHY beside a PCH): this many words.
     #[doc(alias = "lcd")]
     LocalAreaNetworkConnectedDeviceConfigured {
         /// (value, register) pairs written.
@@ -311,7 +311,7 @@ fn has_management_engine(hardware: &mut impl Hardware) -> bool {
 ///
 /// It gates the hardware's automatic PHY configuration and forces the PHY out of ultra-low-power:
 /// through the Management Engine if there is one, through PHY registers if not. It makes sure the
-/// MAC-PHY interconnect is PCIe rather than `SMBus`. If the PHY does not answer, it forces `SMBus`,
+/// MAC-PHY interconnect is `PCIe` rather than `SMBus`. If the PHY does not answer, it forces `SMBus`,
 /// and if the PHY still does not answer, it power-cycles the PHY with `LANPHYPC`. Then it resets
 /// the PHY so it starts from a known state, unless firmware blocks PHY resets: then it skips the
 /// reset, notes [`BringUpObservation::PhysicalLayerDeviceResetBlocked`] and returns the identifier.
@@ -389,7 +389,7 @@ pub fn initialize_physical_layer_device_workarounds(
     Ok(id)
 }
 
-/// **`e1000_disable_ulp_lpt_lp` with `force`.** Through the ME when there is one; by PHY registers
+/// **`e1000_disable_ulp_lpt_lp` with `force`.** Through the Management Engine when there is one; by PHY registers
 /// when not. Reports rather than returns, as its caller does.
 fn leave_ultra_low_power(hardware: &mut impl Hardware) {
     if has_management_engine(hardware) {
@@ -512,7 +512,7 @@ fn leave_ultra_low_power_by_physical_layer_device(
 const _: () = assert!(((u16::MAX as u32) << 16) & (u16::MAX as u32) == 0);
 
 /// **`e1000_phy_is_accessible_pchlan`**, for parts at Lynx Point and later. Two tries at the
-/// identifier; on success, and only without an ME, unforce `SMBus` in the PHY and the MAC.
+/// identifier; on success, and only without a Management Engine, unforce `SMBus` in the PHY and the MAC.
 ///
 /// FreeBSD's quirk is kept: an identifier that reads as `0xffff` without an `MDIC` error counts as
 /// accessible on a first probe (its `ret_val` is zero), so does this.
@@ -585,7 +585,7 @@ const _: () = assert!(
 );
 
 /// **`e1000_toggle_lanphypc_pch_lpt`**: fully power-cycle the PHY by driving the `LANPHYPC` pin
-/// low for a millisecond, then wait for the hardware's "LCD power cycle done".
+/// low for a millisecond, then wait for the hardware's "`LCD` power cycle done".
 fn toggle_lanphypc(hardware: &mut impl Hardware) {
     let n3 = hardware.read(registers::FEXTNVM3);
     hardware.write(
@@ -803,8 +803,8 @@ fn post_physical_layer_device_reset(hardware: &mut impl Hardware) -> Result<(), 
     oem_bits(hardware)
 }
 
-/// **`e1000_sw_lcd_config_ich8lan`**, the local area network connected device (Intel's LAN
-/// Connected Device, LCD) configuration: when the NVM says software configures the PHY ("an issue
+/// **`e1000_sw_lcd_config_ich8lan`**, the local area network connected device (Intel's
+/// `LAN Connected Device`, `LCD`) configuration: when the NVM says software configures the PHY ("an issue
 /// where the NVM configuration is not properly autoloaded after power transitions"), write the
 /// `SMBus` address and LED configuration, then replay the extended configuration region's
 /// (value, register) pairs into the PHY.
@@ -929,7 +929,7 @@ fn write_system_management_bus_address(
 #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
 const _: () = assert!(OEM_BITS_GIGABIT_DISABLE & OEM_BITS_LOW_POWER_LINK_UP == 0);
 
-/// **`e1000_oem_bits_config_ich8lan`** for D0: carry the MAC's gigabit-disable and LPLU settings
+/// **`e1000_oem_bits_config_ich8lan`** for D0: carry the MAC's gigabit-disable and `LPLU` settings
 /// into the PHY's OEM bits and restart autonegotiation to apply them.
 fn oem_bits(hardware: &mut impl Hardware) -> Result<(), Error> {
     let f = SoftwareFlag::acquire(hardware)?;
@@ -972,7 +972,7 @@ fn oem_bits(hardware: &mut impl Hardware) -> Result<(), Error> {
 // constant sets again, so each OR-to-XOR swap composes identical words; the compiler checks that
 // here, so the function's OR-to-XOR swaps are equivalent mutants (the
 // TARC1 read join and the prefetch join are killed by
-// initialize_hardware_writes_freebsds_values_from_any_starting_state and stay mutated).
+// initialize_hardware_writes_freebsds_values_over_bits_already_set and stay mutated).
 #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
 const _: () = assert!(
     (1 << 22) & CTRL_EXT_PHYPDEN == 0
@@ -1050,7 +1050,7 @@ pub fn initialize_hardware(hardware: &mut impl Hardware) -> Result<(), Error> {
 // composes identical words; the compiler checks that here, so the
 // function's OR-to-XOR swaps are equivalent mutants. The joins on a register's own value (SLU into
 // CTRL, the capability bits into the words just read) are killed by
-// initialize_hardware_writes_freebsds_values_from_any_starting_state and stay mutated.
+// initialize_hardware_writes_freebsds_values_over_bits_already_set and stay mutated.
 #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
 const _: () = assert!(
     CTRL_FRCSPD & CTRL_FRCDPX == 0
@@ -1143,7 +1143,7 @@ pub fn setup_copper_link(hardware: &mut impl Hardware) -> Result<(), Error> {
 #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
 const _: () = assert!(TARC0_CB_MULTIQ_2_REQ & !TARC0_CB_MULTIQ_3_REQ == 0);
 
-/// **`em_initialize_transmit_unit`'s "SPT and KBL errata workarounds"**, after `TCTL` is written:
+/// **`em_initialize_transmit_unit`'s "SPT and `KBL` errata workarounds"**, after `TCTL` is written:
 /// multiple outstanding requests on, `IOSFPC`'s receive threshold, and `TARC0`'s request count
 /// (Intel's "i218-i219 Specification Update 1.5.4.5", cited by FreeBSD, not read here).
 pub fn transmit_errata(hardware: &mut impl Hardware) {
@@ -1213,7 +1213,7 @@ mod tests {
         *simulator.mac.get(&offset).unwrap_or(&0)
     }
 
-    /// **An ME that never finishes is given FreeBSD's whole 2.5 s** (250 waits of 10 ms over 251
+    /// **A Management Engine that never finishes is given FreeBSD's whole 2.5 s** (250 waits of 10 ms over 251
     /// polls, none after the last, and no polls past them), and the request is left standing. One
     /// that is already done costs nothing and has its request released.
     #[test]
@@ -1385,7 +1385,7 @@ mod tests {
     }
 
     /// **The `SMBus` address word takes its address and frequency from `STRAP`** and keeps only
-    /// the bits it does not own: the old address is replaced, PEC and valid are set even if they
+    /// the bits it does not own: the old address is replaced, the packet error checking (PEC) and valid bits are set even if they
     /// already were, and the frequency (minus one) lands in bits 8 and 12. A frequency of zero is
     /// left alone and reported, as FreeBSD declines to program it.
     #[test]
@@ -1419,7 +1419,7 @@ mod tests {
         }
     }
 
-    /// **The OEM bits carry the MAC's gigabit-disable and LPLU into the PHY**, clear them when the
+    /// **The OEM bits carry the MAC's gigabit-disable and `LPLU` into the PHY**, clear them when the
     /// MAC does not ask, keep the PHY's other bits, and restart autonegotiation unless firmware
     /// blocks PHY resets. Without `SW_CONFIG` the PHY is not touched.
     #[test]
@@ -1452,11 +1452,9 @@ mod tests {
         }
     }
 
-    /// **`initialize_hardware` writes FreeBSD's values**, from a device that holds nothing and from
-    /// one whose registers already hold some of the bits. The second case is what tells setting a
-    /// bit from toggling it, and keeping a register's other bits from clearing them.
+    /// **`initialize_hardware` writes FreeBSD's values** into a device that holds nothing.
     #[test]
-    fn initialize_hardware_writes_freebsds_values_from_any_starting_state() {
+    fn initialize_hardware_writes_freebsds_values_from_an_empty_device() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         s.physical_layer_device_registers.insert(
             physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT,
@@ -1506,7 +1504,13 @@ mod tests {
                 [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_CONTROL_REGISTER],
             0x1200
         );
+    }
 
+    /// **`initialize_hardware` writes FreeBSD's values** into a device whose registers already hold
+    /// some of the bits. This case is what tells setting a bit from toggling it, and keeping a
+    /// register's other bits from clearing them.
+    #[test]
+    fn initialize_hardware_writes_freebsds_values_over_bits_already_set() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         s.mac.insert(mac::TRANSMIT_CONTROL_REGISTER, TCTL_MULR);
         s.mac.insert(registers::TARC1, 0x5500_00ff);
@@ -1587,7 +1591,7 @@ mod tests {
         assert_eq!(hardware.registers[&registers::TARC0], 0x2000_00ff);
     }
 
-    /// **Without an ME, every write to `CV_SMB_CTRL` clears only the force bit, and K1 and the
+    /// **Without a Management Engine, every write to `CV_SMB_CTRL` clears only the force bit, and K1 and the
     /// ULP start bit are set even when already set.** The PHY is reset twice: once by the ULP exit
     /// and once by the attach that follows it.
     #[test]

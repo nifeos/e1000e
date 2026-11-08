@@ -8,7 +8,7 @@ pub const PCI_CONFIGURATION_DESCRIPTOR_RING_STATUS_REGISTER: u64 = 0xe4;
 /// `sys/dev/pci/if_em.h`, then FreeBSD's `sys/dev/e1000/if_em.h`).
 #[doc(alias = "FLUSH_DESC_REQUIRED")]
 pub const DESCRIPTOR_RING_FLUSH_REQUIRED: u16 = 0x100;
-/// Future Extended NVM 11 (`FEXTNVM11`), the "disable MULR fix" bit, set before the flush. `MULR` is
+/// Future Extended NVM 11 (`FEXTNVM11`), the "disable `MULR` fix" bit, set before the flush. `MULR` is
 /// the sources' own term and is left unexpanded: no source expands it for this bit. FreeBSD's
 /// `e1000_ich8lan.h` defines `E1000_FEXTNVM11_DISABLE_MULR_FIX` with no comment, and the
 /// similar-looking `E1000_TCTL_MULR` ("Multiple request support") is a different bit in the

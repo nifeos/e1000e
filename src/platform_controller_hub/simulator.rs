@@ -2,7 +2,7 @@
 //!
 //! It is this crate's reading of FreeBSD's code turned inside out, not the device: the semaphore
 //! sticks unless firmware holds it, `MDIC` answers at once, a PHY in `SMBus` mode answers only a MAC
-//! forced into `SMBus` too, `LANPHYPC` power-cycles the PHY back to PCIe, and the flash registers
+//! forced into `SMBus` too, `LANPHYPC` power-cycles the PHY back to `PCIe`, and the flash registers
 //! read words out of an NVM image. What it can catch is a sequence that disagrees with itself or
 //! with FreeBSD's order: a semaphore left held, a page select to the wrong address, a PHY reset
 //! issued when firmware forbids it. What it cannot catch is FreeBSD being wrong about silicon, or
@@ -19,7 +19,7 @@ use crate::registers as mac;
 /// How the PHY behaves when the bring-up starts.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PhysicalLayerDeviceStartState {
-    /// Answers over PCIe.
+    /// Answers over `PCIe`.
     Healthy,
     /// Left in `SMBus` mode by firmware: answers only while the MAC is forced to `SMBus` too.
     InSystemManagementBus,
@@ -33,7 +33,7 @@ pub struct SimulatedHardware {
     pub physical_layer_device_registers: HashMap<u32, u16>,
     /// Every PHY write that reached a register, as (paged offset, value), in order.
     pub physical_layer_device_writes: Vec<(u32, u16)>,
-    /// Every MDIC write as issued, for checking page selects and addresses.
+    /// Every `MDIC` write as issued, for checking page selects and addresses.
     pub mdic_log: Vec<u32>,
     pub notes: Vec<BringUpObservation>,
     pub non_volatile_memory: Vec<u16>,

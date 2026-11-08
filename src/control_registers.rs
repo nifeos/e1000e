@@ -39,10 +39,10 @@ pub const RECEIVE_ADDRESS_HIGH_ADDRESS_VALID: u32 = 0x8000_0000;
 /// `RCTL`: receive enable (Linux's `regs.h`).
 pub(crate) const RECEIVE_CONTROL_ENABLE: u32 = 0x0000_0002;
 
-/// `RCTL`: accept broadcast, which DHCP's offer needs (`E1000_RCTL_BAM`).
+/// `RCTL`: accept broadcast, which a Dynamic Host Configuration Protocol (DHCP) offer needs (`E1000_RCTL_BAM`).
 const RECEIVE_CONTROL_ACCEPT_BROADCAST: u32 = 0x0000_8000;
 
-/// `RCTL`: strip the CRC (`E1000_RCTL_SECRC`).
+/// `RCTL`: strip the cyclic redundancy check (CRC) (`E1000_RCTL_SECRC`).
 const RECEIVE_CONTROL_STRIP_CRC: u32 = 0x0400_0000;
 
 // The three share no bit, so | and ^ compose the word identically; the compiler checks that here,
@@ -93,8 +93,8 @@ pub const fn transmit_control_register_value() -> u32 {
 #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
 const _: () = assert!(8 ^ (8 << 10) ^ (6 << 20) == 8 | (8 << 10) | (6 << 20));
 
-/// **Transmit Inter-Packet Gap** (`E1000_TIPG`, Linux's `regs.h`) for copper: IPGT 8, IPGR1 8,
-/// IPGR2 6 (Linux's `DEFAULT_82543_TIPG_*`).
+/// **Transmit Inter-Packet Gap** (`E1000_TIPG`, Linux's `regs.h`) for copper: `IPGT` 8, `IPGR1` 8,
+/// `IPGR2` 6 (Linux's `DEFAULT_82543_TIPG_*`).
 #[doc(alias = "transmit inter-packet gap")]
 #[doc(alias = "tipg")]
 #[doc(alias = "E1000_TIPG")]

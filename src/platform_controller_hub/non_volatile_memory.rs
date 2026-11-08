@@ -1,7 +1,7 @@
 //! **Reading the I219's NVM on Sunrise Point**, where the `GbE` flash region is reached through
-//! registers in BAR0 rather than the chipset's SPI controller.
+//! registers in BAR0 rather than the chipset's serial peripheral interface (SPI) controller.
 //!
-//! [`super::sequence`] needs it for the post-reset LCD configuration and the NVM-present check.
+//! [`super::sequence`] needs it for the post-reset `LCD` configuration and the NVM-present check.
 //! Read only: nothing here can write or erase the flash. Each item names the SPT branch of
 //! FreeBSD's `e1000_ich8lan.c` it follows.
 
@@ -242,7 +242,7 @@ fn cycle(hardware: &mut impl Hardware) -> Result<(), Error> {
     }
 }
 
-/// `e1000_read_flash_data32_ich8lan`: one `u32` (a DWORD, in Intel's word sizes) at byte offset
+/// `e1000_read_flash_data32_ich8lan`: one `u32` (a doubleword, in Intel's word sizes) at byte offset
 /// `byte`.
 #[doc(alias = "dword")]
 pub(crate) fn read_u32_at_byte(hardware: &mut impl Hardware, byte: u32) -> Result<u32, Error> {
@@ -282,7 +282,7 @@ pub(crate) fn read_u32_at_byte(hardware: &mut impl Hardware, byte: u32) -> Resul
     last.map(|()| 0)
 }
 
-/// `e1000_read_flash_dword_ich8lan`: the `u32` (Intel's DWORD) at 16-bit word offset `word`.
+/// `e1000_read_flash_dword_ich8lan`: the `u32` (Intel's doubleword) at 16-bit word offset `word`.
 #[doc(alias = "dword")]
 pub(crate) fn read_u32(hardware: &mut impl Hardware, word: u32) -> Result<u32, Error> {
     read_u32_at_byte(hardware, word << 1)

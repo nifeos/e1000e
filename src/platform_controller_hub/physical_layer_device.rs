@@ -1,19 +1,19 @@
-//! **Reaching the PHY: MDIO through `MDIC`, under the software/firmware semaphore.**
+//! **Reaching the PHY: management data input output (MDIO) through `MDIC`, under the software/firmware semaphore.**
 //!
 //! [`read_management_data_input_output`] and [`write_management_data_input_output`] are the MDIO primitive the 82574L shares. Of the rest, only
 //! [`read_identifier_at_address`] applies to an 82574L, which has no pages and no semaphore. [`read()`] and [`write()`]
 //! are the paged access every PCH PHY register above page 0 needs, and each takes a [`SoftwareFlag`],
 //! which only [`SoftwareFlag::acquire`] makes. That type stands where FreeBSD writes "Assumes
-//! semaphore already acquired" comments. The FreeBSD sources are `e1000_phy.c` (the MDIC and
+//! semaphore already acquired" comments. The FreeBSD sources are `e1000_phy.c` (the `MDIC` and
 //! paged access) and `e1000_ich8lan.c` (the semaphore and the reset block).
 //!
-//! Two divergences are deliberate. There is no MDIC retry: FreeBSD retries only from Meteor Lake
+//! Two divergences are deliberate. There is no `MDIC` retry: FreeBSD retries only from Meteor Lake
 //! on (`current_retry_counter` is 2 from `e1000_pch_mtp`, 0 below it), and every part this crate
 //! claims is Sunrise Point, so one attempt is FreeBSD's behavior exactly. And two page ranges are
 //! refused rather than ported, as [`Error::PageNotPorted`]: page 800, the host wakeup page with its
 //! own address and data opcode protocol (`e1000_access_phy_wakeup_reg_bm`), and pages 1 to 767,
 //! the 82577 and 82578 debug registers (`e1000_access_phy_debug_regs_hv`). Nothing in
-//! [`super::sequence`] addresses either. Only an NVM-supplied LCD configuration word could, and
+//! [`super::sequence`] addresses either. Only an NVM-supplied `LCD` configuration word could, and
 //! that returns [`Error::PageNotPorted`] rather than writing somewhere unexamined.
 
 //! ```text
@@ -165,7 +165,7 @@ pub const fn paged_offset(page: u32, register: u32) -> u32 {
 pub mod registers {
     use super::paged_offset;
     /// **Control Register** (OpenBSD's `PHY_CTRL`, `sys/dev/pci/if_em_hw.h`; FreeBSD's
-    /// `PHY_CONTROL`, `e1000_defines.h`). MII register 0.
+    /// `PHY_CONTROL`, `e1000_defines.h`). Media independent interface (MII) register 0.
     #[doc(alias = "control register")]
     #[doc(alias = "PHY_CTRL")]
     #[doc(alias = "PHY_CONTROL")]
@@ -198,7 +198,7 @@ pub mod registers {
     /// name, `sys/dev/pci/if_em_hw.h`; FreeBSD's `HV_KMRN_MODE_CTRL`, `e1000_ich8lan.h`). Page 769,
     /// register 16. Kumeran is the interconnect between the MAC and this PHY. The register was
     /// first defined for the Hanksville (82577) PHY and still applies on the later I217 through
-    /// I219 parts. It is not the GG82563 PHY's Kumeran Mode Control on page 193
+    /// I219 parts. It is not the `GG82563` PHY's Kumeran Mode Control on page 193
     /// (`GG82563_PHY_KMRN_MODE_CTRL`), which this crate does not address.
     #[doc(alias = "kumeran mode control")]
     #[doc(alias = "HV_KMRN_MODE_CTRL")]
@@ -223,7 +223,7 @@ pub mod registers {
     #[doc(alias = "ultra-low-power configuration 1")]
     #[doc(alias = "I218_ULP_CONFIG1")]
     pub(crate) const I218_ULTRA_LOW_POWER_CONFIGURATION1: u32 = paged_offset(779, 16);
-    /// **OEM Bits** (OpenBSD's `HV_OEM_BITS`, `sys/dev/pci/if_em_hw.h`; FreeBSD's `HV_OEM_BITS`,
+    /// **Original Equipment Manufacturer (OEM) Bits** (OpenBSD's `HV_OEM_BITS`, `sys/dev/pci/if_em_hw.h`; FreeBSD's `HV_OEM_BITS`,
     /// `e1000_ich8lan.h`). The bits the original equipment manufacturer's configuration sets: low
     /// power link up, gigabit disable and restart autonegotiation; page 768, register 25.
     #[doc(alias = "oem bits")]
@@ -235,7 +235,7 @@ pub mod registers {
     #[doc(alias = "system management bus address")]
     #[doc(alias = "HV_SMB_ADDR")]
     pub(crate) const SYSTEM_MANAGEMENT_BUS_ADDRESS_REGISTER: u32 = paged_offset(768, 26);
-    /// **LED Configuration** (FreeBSD's `HV_LED_CONFIG`, `e1000_ich8lan.h`; OpenBSD does not name
+    /// **Light-Emitting Diode (LED) Configuration** (FreeBSD's `HV_LED_CONFIG`, `e1000_ich8lan.h`; OpenBSD does not name
     /// it). Page 768, register 30: the PHY's LED modes, copied from the MAC's `LEDCTL`.
     #[doc(alias = "led configuration")]
     #[doc(alias = "HV_LED_CONFIG")]

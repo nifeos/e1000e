@@ -3,7 +3,7 @@
 /// ([`super::non_volatile_memory::Geometry`]).
 #[doc(alias = "strap")]
 pub(crate) const STRAP: u64 = 0x0_000c;
-/// **MDI Control** (`E1000_MDIC`, FreeBSD's `e1000_regs.h`). The MDIO transaction register
+/// **Management Data Interface (MDI) Control** (`E1000_MDIC`, FreeBSD's `e1000_regs.h`). The MDIO transaction register
 /// ([`super::physical_layer_device`]).
 #[doc(alias = "management data interface control")]
 pub(crate) const MDIC: u64 = 0x0_0020;
@@ -27,19 +27,19 @@ pub(crate) const EXTCNF_CTRL: u64 = 0x0_0f00;
 /// **Extended Configuration Size** (`E1000_EXTCNF_SIZE`, FreeBSD's `e1000_regs.h`).
 #[doc(alias = "extended configuration size")]
 pub(crate) const EXTCNF_SIZE: u64 = 0x0_0f08;
-/// **PHY Control Register in CSR** (`E1000_PHY_CTRL`, FreeBSD's `e1000_regs.h`). The PHY control
-/// the MAC holds: LPLU and gigabit disable.
+/// **PHY Control Register in Control and Status Register (CSR)** (`E1000_PHY_CTRL`, FreeBSD's `e1000_regs.h`). The PHY control
+/// the MAC holds: `LPLU` and gigabit disable.
 #[doc(alias = "physical layer device control register in control and status registers")]
 #[doc(alias = "E1000_PHY_CTRL")]
 pub(crate) const PHYSICAL_LAYER_DEVICE_CONTROL_REGISTER: u64 = 0x0_0f10;
-/// **IOSF Power Control** (`E1000_IOSFPC`, FreeBSD's `e1000_regs.h`). The I/O side-band fabric's
-/// power control, which SPT's transmit errata write. FreeBSD's comment reads "TX corrupted data".
+/// **`IOSF` Power Control** (`E1000_IOSFPC`, FreeBSD's `e1000_regs.h`). The I/O side-band fabric's
+/// power control, which SPT's transmit errata write. FreeBSD's comment says the write avoids corrupted transmit data.
 #[doc(alias = "iosf power control")]
 pub(crate) const IOSFPC: u64 = 0x0_0f28;
 /// **Packet Buffer Allocation** (`E1000_PBA`, FreeBSD's `e1000_regs.h`).
 #[doc(alias = "packet buffer allocation")]
 pub(crate) const PBA: u64 = 0x0_1000;
-/// **Packet Buffer ECC Status** (`E1000_PBECCSTS`, FreeBSD's `e1000_regs.h`).
+/// **Packet Buffer Error Correcting Code (ECC) Status** (`E1000_PBECCSTS`, FreeBSD's `e1000_regs.h`).
 #[doc(alias = "packet buffer ecc status")]
 pub(crate) const PBECCSTS: u64 = 0x0_100c;
 /// **Receive Descriptor Control** (OpenBSD's `E1000_RXDCTL(0)`, `sys/dev/pci/if_em_hw.h`). Queue 0.
@@ -63,11 +63,11 @@ pub(crate) const TXDCTL1: u64 = 0x0_3928;
 /// **Transmit Arbitration Count** (`E1000_TARC(1)`, FreeBSD's `e1000_regs.h`). Queue 1.
 #[doc(alias = "transmit arbitration count")]
 pub(crate) const TARC1: u64 = 0x0_3940;
-/// **Host to ME** (`E1000_H2ME`, FreeBSD's `e1000_ich8lan.h`). Messages from the driver to the
+/// **Host to Management Engine** (`E1000_H2ME`, FreeBSD's `e1000_ich8lan.h`). Messages from the driver to the
 /// Management Engine.
 #[doc(alias = "host to management engine")]
 pub(crate) const H2ME: u64 = 0x0_5b50;
-/// **FW Semaphore** (`E1000_FWSM`, FreeBSD's `e1000_regs.h`). The firmware semaphore: the
+/// **Firmware Semaphore** (`E1000_FWSM`, FreeBSD's `e1000_regs.h`). The firmware semaphore: the
 /// Management Engine's status.
 #[doc(alias = "firmware semaphore")]
 pub(crate) const FWSM: u64 = 0x0_5b54;

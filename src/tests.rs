@@ -410,8 +410,8 @@ fn the_control_words_carry_the_bits_the_device_needs() {
 }
 
 /// The three control words as whole values, so a field that lands at the wrong shift is caught
-/// as well as a missing enable bit. `TCTL`: EN, PSP, CT 15 at bit 4, COLD 63 at bit 12. `TIPG`:
-/// IPGT 8, IPGR1 8 at bit 10, IPGR2 6 at bit 20 (Linux's `DEFAULT_82543_TIPG_*`).
+/// as well as a missing enable bit. `TCTL`: `EN`, `PSP`, `CT` 15 at bit 4, `COLD` 63 at bit 12. `TIPG`:
+/// `IPGT` 8, `IPGR1` 8 at bit 10, `IPGR2` 6 at bit 20 (Linux's `DEFAULT_82543_TIPG_*`).
 #[test]
 fn the_control_words_are_linuxs_values_exactly() {
     assert_eq!(receive_control_register_value(), 0x0400_8002);
@@ -438,7 +438,7 @@ fn the_control_words_are_linuxs_values_exactly() {
 }
 
 /// Each of the five frame-error bits drops the frame on its own, so no one of them can fall out
-/// of the mask unnoticed: CRC, symbol, sequence, carrier extension and RX data errors.
+/// of the mask unnoticed: CRC, symbol, sequence, carrier extension and receive data errors.
 #[test]
 fn every_frame_error_bit_drops_the_frame() {
     let good = |errors: u8| 60 | (GOOD as u64) << 32 | (errors as u64) << 40;

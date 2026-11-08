@@ -29,7 +29,7 @@ struct ReadmeDoctests;
 #[doc(alias = "pch")]
 pub mod platform_controller_hub;
 
-/// Register offsets in BAR0. Read from Linux's `regs.h`; queue 0 only.
+/// Register offsets in base address register 0 (BAR0). Read from Linux's `regs.h`; queue 0 only.
 pub mod registers;
 
 /// Offsets inside the DMA region, which the kernel half allocates contiguous and confines whole.

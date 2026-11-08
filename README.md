@@ -47,7 +47,7 @@ Three Kani harnesses cover the input a device or a caller controls:
 - `proofs::every_ring_offset_is_inside_the_region`: for any index, every descriptor and buffer
   offset lies inside its part of the DMA region.
 - `platform_controller_hub::physical_layer_device::proofs::a_paged_access_selects_the_offsets_own_page_and_register`:
-  every paged access to the PHY (physical layer device) names a PHY address that exists, the
+  every paged access to the physical (PHY) layer device names a PHY address that exists, the
   offset's own register and the offset's own page.
 
 The proofs need Kani, which `rustup` does not install. Run `cargo install --locked
@@ -78,7 +78,7 @@ them. QEMU uses legacy descriptors unless software sets `RFCTL.EXTEN`, and it re
 The author did not read Intel's own I219 datasheet. Where the I219 likely differs from the 82574L,
 the item says so.
 
-The I219 needs a port rather than a reading of registers. It is a MAC inside the platform
+The I219 needs a port rather than a reading of registers. It is a media access control (MAC) block inside the platform
 controller hub, talking to a separate PHY that it shares with the Management Engine, and it
 carries workarounds that only field exposure finds. For `platform_controller_hub`, the author read
 only FreeBSD's Intel shared code (BSD-3-Clause) and its `if_em.c` and `if_em.h` (BSD-2-Clause).
