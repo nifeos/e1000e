@@ -2,7 +2,7 @@
 //!
 //! It is this crate's reading of FreeBSD's code turned inside out, not the device: the semaphore
 //! sticks unless firmware holds it, `MDIC` answers at once, a PHY in `SMBus` mode answers only a MAC
-//! forced into `SMBus` too, `LANPHYPC` power-cycles the PHY back to PCIe, and the flash registers
+//! forced into `SMBus` too, `LANPHYPC` power-cycles the PHY back to `PCIe`, and the flash registers
 //! read words out of an NVM image. What it can catch is a sequence that disagrees with itself or
 //! with FreeBSD's order: a semaphore left held, a page select to the wrong address, a PHY reset
 //! issued when firmware forbids it. What it cannot catch is FreeBSD being wrong about silicon, or
@@ -19,7 +19,7 @@ use crate::registers as mac;
 /// How the PHY behaves when the bring-up starts.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PhysicalLayerDeviceStartState {
-    /// Answers over PCIe.
+    /// Answers over `PCIe`.
     Healthy,
     /// Left in `SMBus` mode by firmware: answers only while the MAC is forced to `SMBus` too.
     InSystemManagementBus,
@@ -33,7 +33,7 @@ pub struct SimulatedHardware {
     pub physical_layer_device_registers: HashMap<u32, u16>,
     /// Every PHY write that reached a register, as (paged offset, value), in order.
     pub physical_layer_device_writes: Vec<(u32, u16)>,
-    /// Every MDIC write as issued, for checking page selects and addresses.
+    /// Every `MDIC` write as issued, for checking page selects and addresses.
     pub mdic_log: Vec<u32>,
     pub notes: Vec<BringUpObservation>,
     pub non_volatile_memory: Vec<u16>,
@@ -107,7 +107,7 @@ impl SimulatedHardware {
         };
         // FW_VALID when there is an ME; RSPCIPHY set, so firmware does not block PHY resets.
         s.mac.insert(
-            registers::FWSM,
+            registers::FIRMWARE_SEMAPHORE_REGISTER,
             physical_layer_device::ICH_FWSM_RSPCIPHY
                 | if management_engine {
                     super::ultra_low_power::ICH_FWSM_FW_VALID
@@ -115,13 +115,13 @@ impl SimulatedHardware {
                     0
                 },
         );
-        s.mac.insert(registers::STRAP, STRAP_VALUE);
+        s.mac.insert(registers::STRAP_REGISTER, STRAP_VALUE);
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::PHY_ID1,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER,
             (PHYSICAL_LAYER_DEVICE_ID >> 16) as u16,
         );
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::PHY_ID2,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER,
             PHYSICAL_LAYER_DEVICE_ID as u16 | 0x3,
         );
         // Bank 0 carries the valid signature (word 0x13, high byte 0b10xx_xxxx).
@@ -143,7 +143,7 @@ impl SimulatedHardware {
         self.mdic_log.push(value);
         let register = (value & management_data_interface_control::REGISTER_MASK)
             >> management_data_interface_control::REGISTER_SHIFT;
-        let address =
+        let physical_layer_device_number =
             value >> management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT & 0x1f;
         if !self.physical_layer_device_answers() {
             self.mac.insert(
@@ -154,13 +154,13 @@ impl SimulatedHardware {
             );
             return;
         }
-        let offset = if address == 1
+        let offset = if physical_layer_device_number == 1
             && register == physical_layer_device::IGP01E1000_PHYSICAL_LAYER_DEVICE_PAGE_SELECT
         {
             None
-        } else if address == 1 {
+        } else if physical_layer_device_number == 1 {
             let page = if self.page == 0 {
-                physical_layer_device::FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_ADDRESS_ONE
+                physical_layer_device::FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE
             } else {
                 self.page
             };
@@ -178,7 +178,7 @@ impl SimulatedHardware {
                 Some(o) => {
                     self.physical_layer_device_registers.insert(o, data);
                     self.physical_layer_device_writes.push((o, data));
-                    if o == physical_layer_device::registers::CV_SMB_CTRL && data & 1 == 0 {
+                    if o == physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER && data & 1 == 0 {
                         self.physical_layer_device_in_system_management_bus = false;
                     }
                 }
@@ -224,9 +224,9 @@ impl SimulatedHardware {
             self.global_resets += 1;
             stored &= !crate::DEVICE_CONTROL_GLOBAL_RESET; // self-clears in the model at once
             // The reset drops the semaphore; the configuration pointer is reloaded from the NVM.
-            let e = self.get(registers::EXTCNF_CTRL);
+            let e = self.get(registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
             self.mac.insert(
-                registers::EXTCNF_CTRL,
+                registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
                 e & !physical_layer_device::EXTCNF_CTRL_SWFLAG,
             );
             let s = self.get(mac::DEVICE_STATUS_REGISTER);
@@ -259,7 +259,7 @@ impl SimulatedHardware {
     fn flash_end_cycle(&mut self) {
         let byte = self.get(
             non_volatile_memory::FLASH_REGISTERS_OFFSET_BYTES
-                + non_volatile_memory::FLASH_LINEAR_ADDRESS_REGISTER,
+                + non_volatile_memory::FLASH_LINEAR_BYTE_OFFSET_REGISTER,
         ) as usize;
         let w = byte / 2;
         let low = *self.non_volatile_memory.get(w).unwrap_or(&0xffff);
@@ -280,7 +280,7 @@ impl SimulatedHardware {
 }
 
 fn mac_mdic() -> u64 {
-    registers::MDIC
+    registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER
 }
 
 impl Hardware for SimulatedHardware {
@@ -315,9 +315,9 @@ impl Hardware for SimulatedHardware {
     fn write(&mut self, offset: u64, value: u32) {
         self.writes.push((offset, value));
         match offset {
-            o if o == registers::MDIC => self.mdic(value),
+            o if o == registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER => self.mdic(value),
             o if o == mac::DEVICE_CONTROL_REGISTER => self.device_control(value),
-            o if o == registers::EXTCNF_CTRL => {
+            o if o == registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER => {
                 let keep = if self.firmware_holds_software_flag {
                     value & !physical_layer_device::EXTCNF_CTRL_SWFLAG
                 } else {
@@ -331,7 +331,7 @@ impl Hardware for SimulatedHardware {
             {
                 self.flash_write(value);
             }
-            o if o == registers::STRAP => self.strap_writes.push(value),
+            o if o == registers::STRAP_REGISTER => self.strap_writes.push(value),
             _ => {
                 self.mac.insert(offset, value);
             }
@@ -360,16 +360,20 @@ mod tests {
     use super::*;
 
     fn is_software_flag_free(simulator: &SimulatedHardware) -> bool {
-        simulator.get(registers::EXTCNF_CTRL) & physical_layer_device::EXTCNF_CTRL_SWFLAG == 0
+        simulator.get(registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER)
+            & physical_layer_device::EXTCNF_CTRL_SWFLAG
+            == 0
     }
 
     #[test]
-    fn a_paged_register_is_reached_through_a_page_select_at_address_one() {
+    fn a_paged_register_is_reached_through_a_page_select_at_device_number_one() {
         assert_eq!(
-            plan_paged_access(physical_layer_device::registers::CV_SMB_CTRL),
+            plan_paged_access(
+                physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER
+            ),
             Ok(physical_layer_device::PagedAccessPlan {
                 select: Some((769 << 5) as u16),
-                physical_layer_device_address: 1,
+                physical_layer_device_number: 1,
                 register: 23
             })
         );
@@ -383,10 +387,12 @@ mod tests {
             Some(0)
         );
         assert_eq!(
-            plan_paged_access(physical_layer_device::registers::PHY_ID1),
+            plan_paged_access(
+                physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER
+            ),
             Ok(physical_layer_device::PagedAccessPlan {
                 select: None,
-                physical_layer_device_address: 2,
+                physical_layer_device_number: 2,
                 register: 2
             })
         );
@@ -484,7 +490,7 @@ mod tests {
             physical_layer_device::read_management_data_input_output(
                 &mut s,
                 2,
-                physical_layer_device::MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS
+                physical_layer_device::MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER
             )
             .is_ok()
         );
@@ -519,12 +525,12 @@ mod tests {
     fn the_physical_layer_device_id_is_both_words_without_the_revision() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         assert_eq!(
-            physical_layer_device::read_identifier_at_address(&mut s, 2),
+            physical_layer_device::read_identifier_at_device_number(&mut s, 2),
             Ok(PHYSICAL_LAYER_DEVICE_ID)
         );
         let mut dead = SimulatedHardware::new(PhysicalLayerDeviceStartState::Dead, true);
         assert_eq!(
-            physical_layer_device::read_identifier_at_address(&mut dead, 2),
+            physical_layer_device::read_identifier_at_device_number(&mut dead, 2),
             Err(PhysicalLayerDeviceError::ManagementDataInterface)
         );
     }
@@ -537,7 +543,7 @@ mod tests {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         assert!(!physical_layer_device::reset_blocked(&mut s));
         assert_eq!(s.elapsed_microseconds, 0);
-        s.mac.insert(registers::FWSM, 0);
+        s.mac.insert(registers::FIRMWARE_SEMAPHORE_REGISTER, 0);
         assert!(physical_layer_device::reset_blocked(&mut s));
         assert_eq!(s.elapsed_microseconds, 300_000);
     }
@@ -548,13 +554,18 @@ mod tests {
     fn the_semaphore_touches_only_its_own_bit() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         s.firmware_holds_software_flag = true;
-        s.mac.insert(registers::EXTCNF_CTRL, 0x80);
+        s.mac
+            .insert(registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER, 0x80);
         assert!(SoftwareFlag::acquire(&mut s).is_err());
-        assert_eq!(s.get(registers::EXTCNF_CTRL), 0x80);
+        assert_eq!(
+            s.get(registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER),
+            0x80
+        );
 
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         let f = SoftwareFlag::acquire(&mut s).unwrap();
-        s.mac.insert(registers::EXTCNF_CTRL, 0x80);
+        s.mac
+            .insert(registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER, 0x80);
         s.writes.clear();
         f.release(&mut s);
         assert!(s.writes.is_empty(), "{:x?}", s.writes);
@@ -571,7 +582,7 @@ mod tests {
         assert!(is_software_flag_free(&s));
         s.firmware_holds_software_flag = false;
         s.mac.insert(
-            registers::EXTCNF_CTRL,
+            registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
             physical_layer_device::EXTCNF_CTRL_SWFLAG,
         );
         assert_eq!(
@@ -602,7 +613,7 @@ mod tests {
         assert_eq!(s.physical_layer_device_resets, 1);
         assert_eq!(s.lanphypc_toggles, 0);
         assert_ne!(
-            s.get(registers::EXTCNF_CTRL) & 0x80,
+            s.get(registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER) & 0x80,
             0,
             "hardware PHY config gated"
         );
@@ -648,7 +659,7 @@ mod tests {
 
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Dead, true);
         s.mac.insert(
-            registers::FWSM,
+            registers::FIRMWARE_SEMAPHORE_REGISTER,
             super::super::ultra_low_power::ICH_FWSM_FW_VALID,
         ); // RSPCIPHY clear
         assert_eq!(
@@ -666,11 +677,18 @@ mod tests {
     fn without_a_management_engine_ulp_is_left_by_physical_layer_device_registers() {
         let mut s =
             SimulatedHardware::new(PhysicalLayerDeviceStartState::InSystemManagementBus, false);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::I218_ULP_CONFIG1, 0x1ff4);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::CV_SMB_CTRL, 0x0001);
-        s.mac.insert(registers::FEXTNVM7, 0x20);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
+            0x1ff4,
+        );
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER,
+            0x0001,
+        );
+        s.mac.insert(
+            registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_7_REGISTER,
+            0x20,
+        );
         assert_eq!(
             sequence::initialize_physical_layer_device_workarounds(&mut s),
             Ok(PHYSICAL_LAYER_DEVICE_ID)
@@ -681,7 +699,9 @@ mod tests {
         );
         assert!(s.lanphypc_toggles >= 1);
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::CV_SMB_CTRL] & 1,
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::CV_SYSTEM_MANAGEMENT_BUS_CONTROL_REGISTER]
+                & 1,
             0
         );
         assert_ne!(
@@ -694,12 +714,17 @@ mod tests {
         let ulp: Vec<u16> = s
             .physical_layer_device_writes
             .iter()
-            .filter(|w| w.0 == physical_layer_device::registers::I218_ULP_CONFIG1)
+            .filter(|w| {
+                w.0 == physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1
+            })
             .map(|w| w.1)
             .collect();
         let cleared = 0x1ff4 & !0x1d74;
         assert_eq!(ulp, [cleared, cleared | 1], "cleared, then started");
-        assert_eq!(s.get(registers::FEXTNVM7) & 0x20, 0);
+        assert_eq!(
+            s.get(registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_7_REGISTER) & 0x20,
+            0
+        );
         assert!(is_software_flag_free(&s));
     }
 
@@ -709,7 +734,11 @@ mod tests {
         sequence::global_reset(&mut s, 1000).unwrap();
         assert_eq!((s.global_resets, s.physical_layer_device_resets), (1, 1));
         assert_eq!(s.strap_writes, [0x8086, 0x8086]);
-        assert_ne!(s.get(registers::KABGTXD) & 0x0005_0000, 0);
+        assert_ne!(
+            s.get(registers::ANALOG_FRONT_END_BAND_GAP_TRANSMIT_REFERENCE_DATA_REGISTER)
+                & 0x0005_0000,
+            0
+        );
         assert_eq!(
             s.get(mac::DEVICE_STATUS_REGISTER) & 0x600,
             0,
@@ -719,7 +748,7 @@ mod tests {
 
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         s.mac.insert(
-            registers::FWSM,
+            registers::FIRMWARE_SEMAPHORE_REGISTER,
             super::super::ultra_low_power::ICH_FWSM_FW_VALID,
         );
         sequence::global_reset(&mut s, 1000).unwrap();
@@ -754,10 +783,19 @@ mod tests {
             s.non_volatile_memory[bank + 0x80 + 2 * i] = *v;
             s.non_volatile_memory[bank + 0x80 + 2 * i + 1] = *at;
         }
-        s.mac.insert(registers::FEXTNVM, 1 << 27);
-        s.mac.insert(registers::EXTCNF_CTRL, 0x40 << 16);
-        s.mac.insert(registers::EXTCNF_SIZE, 3 << 16);
-        s.mac.insert(registers::LEDCTL, 0x0007_8484);
+        s.mac.insert(
+            registers::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_REGISTER,
+            1 << 27,
+        );
+        s.mac.insert(
+            registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+            0x40 << 16,
+        );
+        s.mac.insert(
+            registers::EXTENDED_CONFIGURATION_SIZE_WORDS_REGISTER,
+            3 << 16,
+        );
+        s.mac.insert(registers::LED_CONTROL_REGISTER, 0x0007_8484);
         sequence::global_reset(&mut s, 1000).unwrap();
         assert!(
             s.notes.contains(
@@ -789,17 +827,22 @@ mod tests {
     #[test]
     fn the_copper_link_advertises_every_speed_without_pause_and_restarts_autonegotiation() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::PHY_AUTONEG_ADV, 0x0c01);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::PHY_1000T_CTRL, 0x0100);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT_REGISTER,
+            0x0c01,
+        );
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL_REGISTER,
+            0x0100,
+        );
         sequence::initialize_hardware(&mut s).unwrap();
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHY_AUTONEG_ADV],
+            s.physical_layer_device_registers[&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT_REGISTER],
             0x0001 | 0x01e0
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHY_1000T_CTRL],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL_REGISTER],
             0x0200
         );
         assert_eq!(
@@ -811,7 +854,10 @@ mod tests {
             s.get(mac::DEVICE_CONTROL_REGISTER) & crate::DEVICE_CONTROL_SET_LINK_UP,
             0
         );
-        assert_eq!(s.get(registers::TXDCTL0) & 0x013f_003f, 0x0101_001f);
+        assert_eq!(
+            s.get(registers::TRANSMIT_DESCRIPTOR_CONTROL_0_REGISTER) & 0x013f_003f,
+            0x0101_001f
+        );
         assert!(is_software_flag_free(&s));
     }
 
@@ -872,7 +918,7 @@ mod tests {
         assert_eq!(
             non_volatile_memory::read_u32_at_byte(
                 &mut s,
-                non_volatile_memory::LINEAR_ADDRESS_MASK + 1
+                non_volatile_memory::LINEAR_BYTE_OFFSET_MASK + 1
             ),
             Err(non_volatile_memory::Error::OutOfRange)
         );
@@ -922,8 +968,11 @@ mod tests {
         );
         // The last byte the linear address reaches is still in range.
         assert!(
-            non_volatile_memory::read_u32_at_byte(&mut s, non_volatile_memory::LINEAR_ADDRESS_MASK)
-                .is_ok()
+            non_volatile_memory::read_u32_at_byte(
+                &mut s,
+                non_volatile_memory::LINEAR_BYTE_OFFSET_MASK
+            )
+            .is_ok()
         );
     }
 

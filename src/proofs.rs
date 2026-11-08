@@ -1,4 +1,3 @@
-
 use super::*;
 
 /// Falsification: replayable `falsifications/proofs.a_delivered_frame_always_fits_the_buffer_and_the_room.patch`

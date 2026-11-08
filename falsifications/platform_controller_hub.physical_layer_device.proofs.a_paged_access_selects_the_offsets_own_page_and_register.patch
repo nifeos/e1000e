@@ -10,10 +10,10 @@ Expected to fail: the select assertion, on any offset whose page is 0x800 or mor
 diff --git a/src/platform_controller_hub/physical_layer_device.rs b/src/platform_controller_hub/physical_layer_device.rs
 --- a/src/platform_controller_hub/physical_layer_device.rs
 +++ b/src/platform_controller_hub/physical_layer_device.rs
-@@ -408,7 +408,7 @@
-     let register = offset & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_ADDRESS;
+@@ -424,7 +424,7 @@
+     let register = offset & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER;
      if page == BM_WUC_PAGE
-         || (page > 0 && page < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_ADDRESS_ONE)
+         || (page > 0 && page < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE)
 -        || page > MAXIMUM_PAGE
 +        || page > 0xffff
      {

@@ -4,46 +4,46 @@
 /// Device Control (`CTRL`): set link up. OpenBSD's `E1000_CTRL_SLU` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
 #[doc(alias = "CTRL_SLU")]
 #[doc(alias = "E1000_CTRL_SLU")]
-pub const DEVICE_CONTROL_SET_LINK_UP: u32 = 0x0000_0040;
+pub const DEVICE_CONTROL_SET_LINK_UP: u32 = 1 << 6;
 
 /// Device Control (`CTRL`): auto-speed detection enable. OpenBSD's `E1000_CTRL_ASDE` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
 #[doc(alias = "CTRL_ASDE")]
 #[doc(alias = "E1000_CTRL_ASDE")]
-pub const DEVICE_CONTROL_AUTO_SPEED_DETECTION_ENABLE: u32 = 0x0000_0020;
+pub const DEVICE_CONTROL_AUTO_SPEED_DETECTION_ENABLE: u32 = 1 << 5;
 
 /// Device Control (`CTRL`): global reset, self-clearing. OpenBSD's `E1000_CTRL_RST` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
 #[doc(alias = "CTRL_RST")]
 #[doc(alias = "E1000_CTRL_RST")]
-pub const DEVICE_CONTROL_GLOBAL_RESET: u32 = 0x0400_0000;
+pub const DEVICE_CONTROL_GLOBAL_RESET: u32 = 1 << 26;
 
 /// Extended Device Control (`CTRL_EXT`): tells management firmware a driver has the device. OpenBSD's `E1000_CTRL_EXT_DRV_LOAD` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
 #[doc(alias = "CTRL_EXT_DRV_LOAD")]
 #[doc(alias = "E1000_CTRL_EXT_DRV_LOAD")]
-pub const EXTENDED_DEVICE_CONTROL_DRIVER_LOAD: u32 = 0x1000_0000;
+pub const EXTENDED_DEVICE_CONTROL_DRIVER_LOAD: u32 = 1 << 28;
 
 /// Device Status (`STATUS`): link up. OpenBSD's `E1000_STATUS_LU` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
 #[doc(alias = "STATUS_LU")]
 #[doc(alias = "E1000_STATUS_LU")]
-pub const DEVICE_STATUS_LINK_UP: u32 = 0x0000_0002;
+pub const DEVICE_STATUS_LINK_UP: u32 = 1 << 1;
 
 /// Receive Filter Control (`RFCTL`): extended receive descriptors. Cleared, so the device writes the legacy format. OpenBSD's `E1000_RFCTL_EXTEN` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
 #[doc(alias = "RFCTL_EXTEN")]
 #[doc(alias = "E1000_RFCTL_EXTEN")]
-pub const RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE: u32 = 0x0000_8000;
+pub const RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE: u32 = 1 << 15;
 
 /// Receive Address High (`RAH`): the address in this entry is valid. OpenBSD's `E1000_RAH_AV` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
 #[doc(alias = "RAH_AV")]
 #[doc(alias = "E1000_RAH_AV")]
-pub const RECEIVE_ADDRESS_HIGH_ADDRESS_VALID: u32 = 0x8000_0000;
+pub const RECEIVE_MAC_ADDRESS_HIGH_VALID: u32 = 1 << 31;
 
 /// `RCTL`: receive enable (Linux's `regs.h`).
-pub(crate) const RECEIVE_CONTROL_ENABLE: u32 = 0x0000_0002;
+pub(crate) const RECEIVE_CONTROL_ENABLE: u32 = 1 << 1;
 
-/// `RCTL`: accept broadcast, which DHCP's offer needs (`E1000_RCTL_BAM`).
-const RECEIVE_CONTROL_ACCEPT_BROADCAST: u32 = 0x0000_8000;
+/// `RCTL`: accept broadcast, which a Dynamic Host Configuration Protocol (DHCP) offer needs (`E1000_RCTL_BAM`).
+const RECEIVE_CONTROL_ACCEPT_BROADCAST: u32 = 1 << 15;
 
-/// `RCTL`: strip the CRC (`E1000_RCTL_SECRC`).
-const RECEIVE_CONTROL_STRIP_CRC: u32 = 0x0400_0000;
+/// `RCTL`: strip the cyclic redundancy check (CRC) (`E1000_RCTL_SECRC`).
+const RECEIVE_CONTROL_STRIP_CRC: u32 = 1 << 26;
 
 // The three share no bit, so | and ^ compose the word identically; the compiler checks that here,
 // so receive_control_register_value's OR-to-XOR swaps are equivalent mutants.
@@ -65,10 +65,10 @@ pub const fn receive_control_register_value() -> u32 {
 }
 
 /// `TCTL`: transmit enable (Linux's `regs.h`).
-pub(crate) const TRANSMIT_CONTROL_ENABLE: u32 = 0x0000_0002;
+pub(crate) const TRANSMIT_CONTROL_ENABLE: u32 = 1 << 1;
 
 /// `TCTL`: pad short frames (`E1000_TCTL_PSP`).
-const TRANSMIT_CONTROL_PAD_SHORT_PACKETS: u32 = 0x0000_0008;
+const TRANSMIT_CONTROL_PAD_SHORT_PACKETS: u32 = 1 << 3;
 
 // The four operands share no bit, so | and ^ compose the word identically; the compiler checks
 // that here, so transmit_control_register_value's OR-to-XOR swaps are equivalent mutants.
@@ -93,8 +93,8 @@ pub const fn transmit_control_register_value() -> u32 {
 #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
 const _: () = assert!(8 ^ (8 << 10) ^ (6 << 20) == 8 | (8 << 10) | (6 << 20));
 
-/// **Transmit Inter-Packet Gap** (`E1000_TIPG`, Linux's `regs.h`) for copper: IPGT 8, IPGR1 8,
-/// IPGR2 6 (Linux's `DEFAULT_82543_TIPG_*`).
+/// **Transmit Inter-Packet Gap** (`E1000_TIPG`, Linux's `regs.h`) for copper: `IPGT` 8, `IPGR1` 8,
+/// `IPGR2` 6 (Linux's `DEFAULT_82543_TIPG_*`).
 #[doc(alias = "transmit inter-packet gap")]
 #[doc(alias = "tipg")]
 #[doc(alias = "E1000_TIPG")]
@@ -107,16 +107,16 @@ pub const fn transmit_inter_packet_gap_register_value() -> u32 {
 /// occur.
 #[doc(alias = "mac")]
 #[doc(alias = "mac_address")]
-pub fn station_address_from_receive_address(
-    receive_address_low: u32,
-    receive_address_high: u32,
+pub fn station_mac_address_from_receive_words(
+    receive_mac_address_low: u32,
+    receive_mac_address_high: u32,
 ) -> Option<[u8; 6]> {
-    if receive_address_high & RECEIVE_ADDRESS_HIGH_ADDRESS_VALID == 0 {
+    if receive_mac_address_high & RECEIVE_MAC_ADDRESS_HIGH_VALID == 0 {
         return None;
     }
-    let low_bytes = receive_address_low.to_le_bytes();
-    let high_bytes = receive_address_high.to_le_bytes();
-    let station_address = [
+    let low_bytes = receive_mac_address_low.to_le_bytes();
+    let high_bytes = receive_mac_address_high.to_le_bytes();
+    let station_mac_address = [
         low_bytes[0],
         low_bytes[1],
         low_bytes[2],
@@ -125,5 +125,6 @@ pub fn station_address_from_receive_address(
         high_bytes[1],
     ];
     // All zeros, or a group address, is not an address a station can own.
-    (station_address != [0; 6] && station_address[0] & 1 == 0).then_some(station_address)
+    (station_mac_address != [0; 6] && station_mac_address[0] & 1 == 0)
+        .then_some(station_mac_address)
 }

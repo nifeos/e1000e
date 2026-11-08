@@ -41,13 +41,13 @@ pub const RECEIVE_STATUS_DESCRIPTOR_DONE: u8 = 0x01;
 #[doc(alias = "E1000_RXD_STAT_EOP")]
 pub const RECEIVE_STATUS_END_OF_PACKET: u8 = 0x02;
 
-/// Receive errors that mean the frame is bad: CRC, symbol, sequence, carrier extension, RX data
+/// Receive errors that mean the frame is bad: CRC, symbol, sequence, carrier extension, receive data
 /// (bits 0, 1, 2, 4 and 7, a mask of `0x97`). OpenBSD's `E1000_RXD_ERR_FRAME_ERR_MASK`
 /// (`sys/dev/pci/if_em_hw.h`), spelled the same by FreeBSD and Linux.
 #[doc(alias = "E1000_RXD_ERR_FRAME_ERR_MASK")]
 pub const RECEIVE_FRAME_ERROR_MASK: u8 = 0x01 | 0x02 | 0x04 | 0x10 | 0x80;
 
-/// Transmit command: end of packet, insert FCS, report status. OpenBSD's `E1000_TXD_CMD_EOP`,
+/// Transmit command: end of packet, insert the frame check sequence (FCS), report status. OpenBSD's `E1000_TXD_CMD_EOP`,
 /// `E1000_TXD_CMD_IFCS` and `E1000_TXD_CMD_RS` (`sys/dev/pci/if_em_hw.h`; FreeBSD and Linux agree)
 /// are `0x01000000`, `0x02000000` and `0x08000000`, the bits here at bit 24 of the second word. No
 /// single BSD name exists for the OR of the three.
