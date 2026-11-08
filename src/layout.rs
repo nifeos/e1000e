@@ -1,4 +1,3 @@
-
 use super::{BUFFER_BYTES, PAGE, RECEIVE_ENTRIES, TRANSMIT_ENTRIES};
 /// The receive descriptor ring's offset in the region, in bytes.
 pub const RECEIVE_RING_OFFSET_BYTES: u64 = 0;
