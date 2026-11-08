@@ -1,4 +1,3 @@
-
 /// `FWSM.FW_VALID`: an ME is present and running, so it owns the ULP exit.
 pub(crate) const ICH_FWSM_FW_VALID: u32 = 0x0000_8000;
 /// `FWSM.ULP_CFG_DONE`: set while the ME's ULP configuration is still in force.

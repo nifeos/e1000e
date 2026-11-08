@@ -1,4 +1,3 @@
-
 /// **Strap** (`E1000_STRAP`, FreeBSD's `e1000_ich8lan.h`). Read only; FreeBSD writes it to order a
 /// config-space read before reset. Bits 5:1 also give the NVM's size
 /// ([`super::non_volatile_memory::Geometry`]).

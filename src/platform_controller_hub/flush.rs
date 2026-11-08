@@ -1,4 +1,3 @@
-
 use super::Hardware;
 
 /// PCI configuration offset of the descriptor ring status word (`PCICFG_DESC_RING_STATUS`,

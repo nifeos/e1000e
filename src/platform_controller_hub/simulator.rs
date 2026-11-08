@@ -117,11 +117,11 @@ impl SimulatedHardware {
         );
         s.mac.insert(registers::STRAP, STRAP_VALUE);
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::PHY_ID1,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1,
             (PHYSICAL_LAYER_DEVICE_ID >> 16) as u16,
         );
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::PHY_ID2,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2,
             PHYSICAL_LAYER_DEVICE_ID as u16 | 0x3,
         );
         // Bank 0 carries the valid signature (word 0x13, high byte 0b10xx_xxxx).
@@ -383,7 +383,9 @@ mod tests {
             Some(0)
         );
         assert_eq!(
-            plan_paged_access(physical_layer_device::registers::PHY_ID1),
+            plan_paged_access(
+                physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1
+            ),
             Ok(physical_layer_device::PagedAccessPlan {
                 select: None,
                 physical_layer_device_address: 2,
@@ -666,8 +668,10 @@ mod tests {
     fn without_a_management_engine_ulp_is_left_by_physical_layer_device_registers() {
         let mut s =
             SimulatedHardware::new(PhysicalLayerDeviceStartState::InSystemManagementBus, false);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::I218_ULP_CONFIG1, 0x1ff4);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
+            0x1ff4,
+        );
         s.physical_layer_device_registers
             .insert(physical_layer_device::registers::CV_SMB_CTRL, 0x0001);
         s.mac.insert(registers::FEXTNVM7, 0x20);
@@ -694,7 +698,9 @@ mod tests {
         let ulp: Vec<u16> = s
             .physical_layer_device_writes
             .iter()
-            .filter(|w| w.0 == physical_layer_device::registers::I218_ULP_CONFIG1)
+            .filter(|w| {
+                w.0 == physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1
+            })
             .map(|w| w.1)
             .collect();
         let cleared = 0x1ff4 & !0x1d74;
@@ -789,17 +795,22 @@ mod tests {
     #[test]
     fn the_copper_link_advertises_every_speed_without_pause_and_restarts_autonegotiation() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::PHY_AUTONEG_ADV, 0x0c01);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::PHY_1000T_CTRL, 0x0100);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT,
+            0x0c01,
+        );
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL,
+            0x0100,
+        );
         sequence::initialize_hardware(&mut s).unwrap();
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHY_AUTONEG_ADV],
+            s.physical_layer_device_registers[&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT],
             0x0001 | 0x01e0
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHY_1000T_CTRL],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL],
             0x0200
         );
         assert_eq!(

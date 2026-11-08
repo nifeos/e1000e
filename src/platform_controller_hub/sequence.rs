@@ -480,18 +480,18 @@ fn leave_ultra_low_power_by_physical_layer_device(
         let u = physical_layer_device::read(
             hardware,
             &f,
-            physical_layer_device::registers::I218_ULP_CONFIG1,
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
         )? & !ULTRA_LOW_POWER_CONFIGURATION1_CLEARED;
         let _ = physical_layer_device::write(
             hardware,
             &f,
-            physical_layer_device::registers::I218_ULP_CONFIG1,
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
             u,
         );
         let _ = physical_layer_device::write(
             hardware,
             &f,
-            physical_layer_device::registers::I218_ULP_CONFIG1,
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
             u | I218_ULTRA_LOW_POWER_CONFIGURATION1_START,
         );
         clear(hardware, registers::FEXTNVM7, FEXTNVM7_DISABLE_SMB_PERST);
@@ -520,14 +520,20 @@ fn accessible(hardware: &mut impl Hardware, flag: &SoftwareFlag, id: &mut u32) -
     let mut seen = 0u32;
     let mut last = Ok(0);
     for _ in 0..2 {
-        last =
-            physical_layer_device::read(hardware, flag, physical_layer_device::registers::PHY_ID1);
+        last = physical_layer_device::read(
+            hardware,
+            flag,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1,
+        );
         let Ok(high) = last else { continue };
         if high == 0xffff {
             continue;
         }
-        last =
-            physical_layer_device::read(hardware, flag, physical_layer_device::registers::PHY_ID2);
+        last = physical_layer_device::read(
+            hardware,
+            flag,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2,
+        );
         let Ok(low) = last else { continue };
         if low == 0xffff {
             continue;
@@ -1094,7 +1100,7 @@ pub fn setup_copper_link(hardware: &mut impl Hardware) -> Result<(), Error> {
         physical_layer_device::update(
             hardware,
             &f,
-            physical_layer_device::registers::I82577_PHY_CTRL_2,
+            physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2,
             |v| {
                 (v & !I82577_PHYSICAL_LAYER_DEVICE_CTRL2_MDIX_CONFIGURATION_MASK)
                     | I82577_PHYSICAL_LAYER_DEVICE_CTRL2_AUTO_MDI_MDIX
@@ -1103,7 +1109,7 @@ pub fn setup_copper_link(hardware: &mut impl Hardware) -> Result<(), Error> {
         physical_layer_device::update(
             hardware,
             &f,
-            physical_layer_device::registers::PHY_AUTONEG_ADV,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT,
             |v| {
                 (v & !(NWAY_AR_ASYMMETRIC_PAUSE_DIRECTION | NWAY_AR_PAUSE))
                     | NWAY_AR_10_MEGABITS_HALF_DUPLEX_CAPABILITY
@@ -1115,7 +1121,7 @@ pub fn setup_copper_link(hardware: &mut impl Hardware) -> Result<(), Error> {
         physical_layer_device::update(
             hardware,
             &f,
-            physical_layer_device::registers::PHY_1000T_CTRL,
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL,
             |v| {
                 (v & !CR_1000_MEGABITS_HALF_DUPLEX_CAPABILITY)
                     | CR_1000_MEGABITS_FULL_DUPLEX_CAPABILITY
@@ -1452,8 +1458,10 @@ mod tests {
     #[test]
     fn initialize_hardware_writes_freebsds_values_from_any_starting_state() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::PHY_AUTONEG_ADV, 0x0c01);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT,
+            0x0c01,
+        );
         initialize_hardware(&mut s).unwrap();
         assert_eq!(
             mac(&s, mac::EXTENDED_DEVICE_CONTROL_REGISTER),
@@ -1480,15 +1488,17 @@ mod tests {
             0x8c00
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::I82577_PHY_CTRL_2],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2],
             0x0400
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHY_AUTONEG_ADV],
+            s.physical_layer_device_registers[&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT],
             0x01e1
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHY_1000T_CTRL],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL],
             0x0200
         );
         assert_eq!(
@@ -1508,12 +1518,18 @@ mod tests {
         );
         s.physical_layer_device_registers
             .insert(physical_layer_device::registers::I82577_CFG_REG, 0x8c01);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::I82577_PHY_CTRL_2, 0x0601);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::PHY_AUTONEG_ADV, 0x0de1);
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::PHY_1000T_CTRL, 0x0300);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2,
+            0x0601,
+        );
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT,
+            0x0de1,
+        );
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL,
+            0x0300,
+        );
         s.physical_layer_device_registers.insert(
             physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_CONTROL_REGISTER,
             0x1200,
@@ -1536,15 +1552,17 @@ mod tests {
             0x8c01
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::I82577_PHY_CTRL_2],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2],
             0x0401
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHY_AUTONEG_ADV],
+            s.physical_layer_device_registers[&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT],
             0x01e1
         );
         assert_eq!(
-            s.physical_layer_device_registers[&physical_layer_device::registers::PHY_1000T_CTRL],
+            s.physical_layer_device_registers
+                [&physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL],
             0x0200
         );
         assert_eq!(
@@ -1582,8 +1600,10 @@ mod tests {
             physical_layer_device::registers::POWER_MANAGEMENT_CONTROL_REGISTER,
             0x4001,
         );
-        s.physical_layer_device_registers
-            .insert(physical_layer_device::registers::I218_ULP_CONFIG1, 0x1ff5);
+        s.physical_layer_device_registers.insert(
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
+            0x1ff5,
+        );
         assert!(initialize_physical_layer_device_workarounds(&mut s).is_ok());
         let to = |reg: u32| -> Vec<u16> {
             s.physical_layer_device_writes
@@ -1602,7 +1622,7 @@ mod tests {
             [0x4001]
         );
         assert_eq!(
-            to(physical_layer_device::registers::I218_ULP_CONFIG1),
+            to(physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1),
             [0x0281, 0x0281]
         );
         assert_eq!(s.physical_layer_device_resets, 2);

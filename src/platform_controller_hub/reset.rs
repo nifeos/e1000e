@@ -1,4 +1,3 @@
-
 /// `CTRL.GIO_MASTER_DISABLE`: stop new bus-master requests before the reset.
 pub(crate) const CTRL_GIO_MASTER_DISABLE: u32 = 0x0000_0004;
 /// `STATUS.GIO_MASTER_ENABLE`: set while master requests are still pending.

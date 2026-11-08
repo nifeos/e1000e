@@ -172,23 +172,28 @@ pub mod registers {
     pub const PHYSICAL_LAYER_DEVICE_CONTROL_REGISTER: u32 = 0x00;
     /// **PHY Identifier, Word 1** (`PHY_ID1`, FreeBSD's `e1000_defines.h`). The high word.
     #[doc(alias = "physical layer device identifier, word 1")]
-    pub(crate) const PHY_ID1: u32 = 0x02;
+    #[doc(alias = "PHY_ID1")]
+    pub(crate) const PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1: u32 = 0x02;
     /// **PHY Identifier, Word 2** (`PHY_ID2`, FreeBSD's `e1000_defines.h`). The low word and the
     /// revision.
     #[doc(alias = "physical layer device identifier, word 2")]
-    pub(crate) const PHY_ID2: u32 = 0x03;
+    #[doc(alias = "PHY_ID2")]
+    pub(crate) const PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2: u32 = 0x03;
     /// **Autonegotiation Advertisement** (`PHY_AUTONEG_ADV`, FreeBSD's `e1000_defines.h`).
     #[doc(alias = "autonegotiation advertisement")]
-    pub(crate) const PHY_AUTONEG_ADV: u32 = 0x04;
+    #[doc(alias = "PHY_AUTONEG_ADV")]
+    pub(crate) const PHYSICAL_LAYER_DEVICE_AUTONEGOTIATION_ADVERTISEMENT: u32 = 0x04;
     /// **1000BASE-T Control** (`PHY_1000T_CTRL`, FreeBSD's `e1000_defines.h`).
     #[doc(alias = "1000base-t control")]
-    pub(crate) const PHY_1000T_CTRL: u32 = 0x09;
+    #[doc(alias = "PHY_1000T_CTRL")]
+    pub(crate) const PHYSICAL_LAYER_DEVICE_1000BASE_T_CONTROL: u32 = 0x09;
     /// **82577 Configuration** (`I82577_CFG_REG`, FreeBSD's `e1000_phy.h`).
     #[doc(alias = "82577 configuration")]
     pub(crate) const I82577_CFG_REG: u32 = 22;
     /// **82577 PHY Control 2** (`I82577_PHY_CTRL_2`, FreeBSD's `e1000_phy.h`).
     #[doc(alias = "82577 physical layer device control 2")]
-    pub(crate) const I82577_PHY_CTRL_2: u32 = 18;
+    #[doc(alias = "I82577_PHY_CTRL_2")]
+    pub(crate) const I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2: u32 = 18;
     /// **Kumeran Mode Control** (OpenBSD's `HV_KMRN_MODE_CTRL`, with `I2_MODE_CTRL` as its I217
     /// name, `sys/dev/pci/if_em_hw.h`; FreeBSD's `HV_KMRN_MODE_CTRL`, `e1000_ich8lan.h`). Page 769,
     /// register 16. Kumeran is the interconnect between the MAC and this PHY. The register was
@@ -216,7 +221,8 @@ pub mod registers {
     /// **Ultra-Low-Power Configuration 1** (`I218_ULP_CONFIG1`, FreeBSD's `e1000_ich8lan.h`). Page
     /// 779, register 16.
     #[doc(alias = "ultra-low-power configuration 1")]
-    pub(crate) const I218_ULP_CONFIG1: u32 = paged_offset(779, 16);
+    #[doc(alias = "I218_ULP_CONFIG1")]
+    pub(crate) const I218_ULTRA_LOW_POWER_CONFIGURATION1: u32 = paged_offset(779, 16);
     /// **OEM Bits** (OpenBSD's `HV_OEM_BITS`, `sys/dev/pci/if_em_hw.h`; FreeBSD's `HV_OEM_BITS`,
     /// `e1000_ich8lan.h`). The bits the original equipment manufacturer's configuration sets: low
     /// power link up, gigabit disable and restart autonegotiation; page 768, register 25.
@@ -505,12 +511,12 @@ pub fn read_identifier_at_address(
     let high = read_management_data_input_output(
         hardware,
         physical_layer_device_address,
-        registers::PHY_ID1,
+        registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1,
     )?;
     let low = read_management_data_input_output(
         hardware,
         physical_layer_device_address,
-        registers::PHY_ID2,
+        registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2,
     )?;
     Ok((u32::from(high) << 16 | u32::from(low)) & PHYSICAL_LAYER_DEVICE_REVISION_MASK)
 }
