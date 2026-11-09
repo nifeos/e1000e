@@ -77,7 +77,7 @@ impl core::error::Error for Error {}
 #[doc(alias = "E1000_FLASH_BASE_ADDR")]
 pub(crate) const FLASH_REGISTERS_OFFSET_BYTES: u64 = 0xe000;
 /// Hardware Sequencing Flash Status (`HSFSTS`), low half; Hardware Sequencing Flash Control, high half
-/// (OpenBSD's `ICH_FLASH_HSFSTS`).
+/// (OpenBSD's `ICH_FLASH_HSFSTS`). An offset from the flash registers at `0xe000` in BAR0.
 #[doc(alias = "HSFSTS")]
 #[doc(alias = "E1000_HSFSTS")]
 #[doc(alias = "ICH_FLASH_HSFSTS")]
@@ -182,7 +182,8 @@ impl Geometry {
 }
 
 fn status_16_bit(hardware: &mut impl Hardware) -> u16 {
-    hardware.read16(FLASH_REGISTERS_OFFSET_BYTES + HARDWARE_SEQUENCING_FLASH_STATUS_REGISTER)
+    hardware
+        .read_flash_status(FLASH_REGISTERS_OFFSET_BYTES + HARDWARE_SEQUENCING_FLASH_STATUS_REGISTER)
 }
 
 /// `e1000_flash_cycle_init_ich8lan`, SPT's 32-bit writes.
