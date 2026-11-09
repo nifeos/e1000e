@@ -61,6 +61,10 @@ pub struct SimulatedHardware {
     pub flash_cycles: Vec<u16>,
     /// `GO` issued while a cycle was still in progress, which the device ignores.
     pub flash_go_while_busy: u32,
+    /// Reads of the flash status and control register so far, through either width.
+    pub flash_status_reads: u32,
+    /// [`SimulatedHardware::flash_status_reads`] as it stood at each `GO`, in order.
+    pub flash_status_reads_at_go: Vec<u32>,
     /// Every BAR0 read by offset, in order, except of the flash status word, which a cycle that
     /// never ends polls ten million times.
     pub reads: Vec<u64>,
@@ -101,6 +105,8 @@ impl SimulatedHardware {
             flash_pending: 0,
             flash_cycles: Vec::new(),
             flash_go_while_busy: 0,
+            flash_status_reads: 0,
+            flash_status_reads_at_go: Vec::new(),
             reads: Vec::new(),
             writes: Vec::new(),
             lanphypc_low: false,
@@ -248,6 +254,7 @@ impl SimulatedHardware {
                 self.flash_go_while_busy += 1;
             }
             self.flash_cycles.push(self.flash_control);
+            self.flash_status_reads_at_go.push(self.flash_status_reads);
             self.flash_control &= !non_volatile_memory::flash_control::FLASH_CYCLE_GO;
             self.flash_pending = self.flash_slow_reads;
             if self.flash_pending == 0 {
@@ -289,6 +296,7 @@ impl Hardware for SimulatedHardware {
             == non_volatile_memory::FLASH_REGISTERS_OFFSET_BYTES
                 + non_volatile_memory::HARDWARE_SEQUENCING_FLASH_STATUS_REGISTER
         {
+            self.flash_status_reads += 1;
             if self.flash_pending > 0 {
                 if self.flash_pending != u32::MAX {
                     self.flash_pending -= 1;
@@ -620,6 +628,33 @@ mod tests {
         assert!(is_software_flag_free(&s));
     }
 
+    /// **With an identifier already known, a probe that answers counts as accessible whatever it
+    /// reads**, which is FreeBSD's `e1000_phy_is_accessible_pchlan`: a mismatch falls through to
+    /// its `ret_val`, which is zero after a read that succeeded. A probe that never answers does
+    /// not count, and the known identifier is never overwritten.
+    #[test]
+    fn a_known_identifier_is_accessible_when_the_probe_answers_and_not_otherwise() {
+        let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
+        let f = SoftwareFlag::acquire(&mut s).unwrap();
+        let mut id = PHYSICAL_LAYER_DEVICE_ID;
+        assert!(
+            sequence::accessible(&mut s, &f, &mut id),
+            "the same identifier"
+        );
+        let other = PHYSICAL_LAYER_DEVICE_ID ^ 0x0001_0000;
+        let mut id = other;
+        assert!(sequence::accessible(&mut s, &f, &mut id), "a different one");
+        assert_eq!(id, other);
+        f.release(&mut s);
+
+        let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Dead, true);
+        let f = SoftwareFlag::acquire(&mut s).unwrap();
+        let mut id = PHYSICAL_LAYER_DEVICE_ID;
+        assert!(!sequence::accessible(&mut s, &f, &mut id), "no answer");
+        assert_eq!(id, PHYSICAL_LAYER_DEVICE_ID);
+        f.release(&mut s);
+    }
+
     #[test]
     fn a_physical_layer_device_left_in_system_management_bus_mode_is_reached_by_forcing_the_mac() {
         let mut s =
@@ -777,8 +812,10 @@ mod tests {
         s.non_volatile_memory[non_volatile_memory::SIGNATURE_WORD as usize] = 0;
         s.non_volatile_memory[bank + non_volatile_memory::SIGNATURE_WORD as usize] = 0x8000;
         // An extended configuration region at `u32` 0x40 (word 0x80): select page 769, then write
-        // 0x1234 to register 17, then 0x0042 to register 25.
-        let words = [(769u16 << 5, 0x1f), (0x1234, 17), (0x0042, 25)];
+        // 0x1234 to register 17, then 0x0042 to register 25. The page word carries a stray low
+        // bit, which FreeBSD ORs into each register number unmasked, as this does: both
+        // registers already have it.
+        let words = [(769u16 << 5 | 1, 0x1f), (0x1234, 17), (0x0042, 25)];
         for (i, (v, at)) in words.iter().enumerate() {
             s.non_volatile_memory[bank + 0x80 + 2 * i] = *v;
             s.non_volatile_memory[bank + 0x80 + 2 * i + 1] = *at;
@@ -1004,6 +1041,21 @@ mod tests {
         );
         assert_eq!(s.flash_cycles.len(), 1);
         assert_eq!(s.flash_status & (0x0002 | 0x0004), 0);
+    }
+
+    /// **An idle flash is not polled before the cycle**: FreeBSD's `e1000_flash_cycle_init_ich8lan`
+    /// starts at once when no cycle is in progress. Three reads of the status and control register
+    /// come before `GO`: the idle check, the control half read to set the byte count, and the
+    /// control half read again to set `GO`.
+    #[test]
+    fn an_idle_flash_starts_its_cycle_without_polling() {
+        let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
+        s.non_volatile_memory[0x20] = 0x1234;
+        assert_eq!(
+            non_volatile_memory::read_u32(&mut s, 0x20).map(|d| d as u16),
+            Ok(0x1234)
+        );
+        assert_eq!(s.flash_status_reads_at_go, [3]);
     }
 
     /// **A cycle someone else started is waited out, and its `FDONE` and `FLCERR` cleared,
