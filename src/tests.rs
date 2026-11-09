@@ -652,7 +652,13 @@ impl DirectMemoryAccessRegion for RefillingDevice {
 #[test]
 fn receive_returns_after_one_lap_of_frames_it_does_not_deliver() {
     let (mut simulator, mut data_plane) = started();
-    while simulator.deliver(&frame(1, 64), 64, GOOD, 0x01) {}
+    for _ in 1..RECEIVE_ENTRIES {
+        assert!(simulator.deliver(&frame(1, 64), 64, GOOD, 0x01));
+    }
+    assert!(
+        !simulator.deliver(&frame(1, 64), 64, GOOD, 0x01),
+        "the ring is full"
+    );
     let mut device = RefillingDevice {
         simulator,
         refills: 0,
