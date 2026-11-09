@@ -37,6 +37,9 @@ assert_eq!(receive_verdict(word(0xffff, done), 1514), ReceiveVerdict::Drop);
 For the rings, implement `DirectMemoryAccessRegion` over the DMA memory and `Tails` over the queue registers, then
 drive a `DataPlane` with `start`, `receive` and `transmit`. Each trait's documentation states the
 contract an implementation keeps: every access volatile, and the barrier each architecture needs.
+[`examples/host_ring.rs`](examples/host_ring.rs) drives both rings against a fake device
+(`cargo run --example host_ring`), and [`docs/bring-up.md`](docs/bring-up.md) gives the register
+order a driver performs before `start`.
 
 ## What is proven
 
@@ -56,9 +59,11 @@ kani-verifier --version 0.68.0`, then `cargo kani setup`. The setup step downloa
 checker, so it needs network access. CI uses version 0.68.0, and another version may verify
 differently.
 
-Rerun them with `cargo kani`. Each harness has a falsification record at
-`falsifications/<module.path>.<harness>.patch`; applying it with `patch -p1` from the crate root
-makes that harness fail at its own assertion, which shows the proof checks something.
+Rerun them with `cargo kani`, or one of them with `cargo kani --harness <name>`. Each harness has
+a falsification record at `falsifications/<module.path>.<harness>.patch`. Applying it with
+`patch -p1 < <file>` from the crate root makes that harness fail at its own assertion, which shows
+the proof checks something; the patch header names the assertion. `patch -R -p1 < <file>` takes it
+out again.
 
 The simulated device tests the non-volatile memory (NVM) reads, the reset, the ultra-low-power (ULP)
 and PHY workaround sequences, and transmit descriptor status. No model checker covers them.
@@ -94,7 +99,14 @@ then was 46cf612d (2026-08-30). The author copied the notice of `if_em.c` and `i
 ## BUGS
 
 - One receive and one transmit queue, polled. No interrupts, checksum offload, segmentation offload
-  or jumbo frames.
+  or jumbo frames. `registers` carries the interrupt cause and mask-clear registers and no cause
+  bits, so an interrupt-driven driver takes them from its own source.
+- Each ring has 16 descriptors (`RECEIVE_ENTRIES`, `TRANSMIT_ENTRIES`), fixed by constants that
+  shape the region's layout and the proofs. A later version may change that.
+- The largest frame is 1514 bytes (`MAXIMUM_FRAME_BYTES`), with no room for a virtual local area network (VLAN) tag: a tagged
+  full-size frame of 1518 bytes is dropped on receive and refused on transmit.
+- The test doubles are private to the crate's tests. `examples/host_ring.rs` is the fake to start
+  from.
 - The crate claims only the 82574L and the Sunrise Point I219 rows of `DEVICE_IDS`. Later platform
   controller hub (PCH) generations need workarounds this crate does not carry.
 - The crate does not port the I219's link-up half, so it does not reconfigure the PHY when link
