@@ -615,3 +615,54 @@ fn transmit_errors_say_which_limit_was_hit() {
         "every transmit descriptor still belongs to the device"
     );
 }
+
+/// A device that keeps its receive ring full of frames the driver will not deliver (a CRC error on
+/// a 64-byte frame). Each time the driver hands a slot back, the head, which sat one slot behind it,
+/// is free to advance, and the device writes that slot at once. `refills` counts those writes.
+struct RefillingDevice {
+    simulator: SimulatedDevice,
+    refills: u64,
+}
+
+impl DirectMemoryAccessRegion for RefillingDevice {
+    fn read_u64(&self, offset: u64) -> u64 {
+        self.simulator.read_u64(offset)
+    }
+    fn write_u64(&mut self, offset: u64, value: u64) {
+        self.simulator.write_u64(offset, value);
+        let ring = layout::receive_descriptor(0);
+        let ring_end = ring + u64::from(RECEIVE_ENTRIES) * 16;
+        if (ring..ring_end).contains(&offset) && (offset - ring) % 16 == 8 && value == 0 {
+            let slot = ((offset - ring) / 16) as u16;
+            let head = (slot + RECEIVE_ENTRIES - 1) % RECEIVE_ENTRIES;
+            let crc_error = 64 | (GOOD as u64) << 32 | 0x01 << 40;
+            self.simulator
+                .write_u64(layout::receive_descriptor(head) + 8, crc_error);
+            self.refills += 1;
+        }
+    }
+    fn read_bytes(&self, offset: u64, out: &mut [u8]) {
+        self.simulator.read_bytes(offset, out);
+    }
+    fn write_bytes(&mut self, offset: u64, source: &[u8]) {
+        self.simulator.write_bytes(offset, source);
+    }
+}
+
+#[test]
+fn receive_returns_after_one_lap_of_frames_it_does_not_deliver() {
+    let (mut simulator, mut data_plane) = started();
+    while simulator.deliver(&frame(1, 64), 64, GOOD, 0x01) {}
+    let mut device = RefillingDevice {
+        simulator,
+        refills: 0,
+    };
+    let (mut receive_tail, mut transmit_tail, mut barriers) = (0, 0, 0);
+    let mut tails = TailRegisters(&mut receive_tail, &mut transmit_tail, &mut barriers);
+    let mut out = [0u8; MAXIMUM_FRAME_BYTES];
+    for call in 1..=3u32 {
+        assert_eq!(data_plane.receive(&mut device, &mut tails, &mut out), None);
+        assert_eq!(data_plane.dropped, call * u32::from(RECEIVE_ENTRIES));
+        assert_eq!(device.refills, u64::from(call) * u64::from(RECEIVE_ENTRIES));
+    }
+}

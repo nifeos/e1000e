@@ -1,0 +1,28 @@
+Falsifies `e1000e::proofs::one_receive_examines_at_most_one_lap_of_the_ring`.
+
+The defect: the receive loop loses its per-call limit and runs until a descriptor reads as not yet
+written or a frame is delivered. A device that writes each descriptor again as soon as it is handed
+back, with a frame that is not delivered, then keeps one call examining descriptors without end.
+
+Expected to fail: the harness's `assert!` on the count of status words read, at the seventeenth read.
+
+diff --git a/src/data_plane.rs b/src/data_plane.rs
+--- a/src/data_plane.rs
++++ b/src/data_plane.rs
+@@ -120,7 +120,7 @@ impl DataPlane {
+         tails: &mut impl Tails,
+         out: &mut [u8],
+     ) -> Option<usize> {
+-        for _ in 0..RECEIVE_ENTRIES {
++        loop {
+             let descriptor_offset = layout::receive_descriptor(self.receive_next);
+             let verdict = receive_verdict(region.read_u64(descriptor_offset + 8), out.len());
+             if verdict == ReceiveVerdict::NotYet {
+@@ -153,7 +153,6 @@ impl DataPlane {
+                 return got;
+             }
+         }
+-        None
+     }
+ 
+     /// Queue `frame` for transmission.
