@@ -72,11 +72,12 @@ pub const fn receive_descriptor_control_register_value_for_flush(current: u32) -
 /// ring's memory, which [`Hardware`] does not reach.
 pub trait FlushSupport {
     /// Read the 16-bit descriptor ring status word at
-    /// [`PCI_CONFIGURATION_DESCRIPTOR_RING_STATUS_REGISTER`] in the function's configuration space.
+    /// [`PCI_CONFIGURATION_DESCRIPTOR_RING_STATUS_REGISTER`] in the function's configuration space,
+    /// fresh each call: the device changes it, so a cached value is wrong.
     fn descriptor_ring_status(&mut self) -> u16;
-    /// Store `words` as transmit descriptor `index` of the ring the device reads, and order the
-    /// stores before any later register write, since the next write hands the descriptor to the
-    /// device.
+    /// Store `words` as transmit descriptor `index` of the ring the device reads, by volatile
+    /// stores, and order the stores before any later register write, since the next write hands
+    /// the descriptor to the device (the barrier [`crate::Tails::barrier`] describes).
     fn write_transmit_descriptor(&mut self, index: u16, words: [u64; 2]);
 }
 

@@ -35,7 +35,8 @@ assert_eq!(receive_verdict(word(0xffff, done), 1514), ReceiveVerdict::Drop);
 ```
 
 For the rings, implement `DirectMemoryAccessRegion` over the DMA memory and `Tails` over the queue registers, then
-drive a `DataPlane` with `start`, `receive` and `transmit`.
+drive a `DataPlane` with `start`, `receive` and `transmit`. Each trait's documentation states the
+contract an implementation keeps: every access volatile, and the barrier each architecture needs.
 
 ## What is proven
 
