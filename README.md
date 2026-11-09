@@ -55,9 +55,11 @@ kani-verifier --version 0.68.0`, then `cargo kani setup`. The setup step downloa
 checker, so it needs network access. CI uses version 0.68.0, and another version may verify
 differently.
 
-Rerun them with `cargo kani`. Each harness has a falsification record at
-`falsifications/<module.path>.<harness>.patch`; applying it with `patch -p1` from the crate root
-makes that harness fail at its own assertion, which shows the proof checks something.
+Rerun them with `cargo kani`, or one of them with `cargo kani --harness <name>`. Each harness has
+a falsification record at `falsifications/<module.path>.<harness>.patch`. Applying it with
+`patch -p1 < <file>` from the crate root makes that harness fail at its own assertion, which shows
+the proof checks something; the patch header names the assertion. `patch -R -p1 < <file>` takes it
+out again.
 
 The simulated device tests the non-volatile memory (NVM) reads, the reset, the ultra-low-power (ULP)
 and PHY workaround sequences, and transmit descriptor status. No model checker covers them.
