@@ -1,8 +1,7 @@
 Falsifies `e1000e::proofs::one_receive_examines_at_most_one_lap_of_the_ring`.
 
-The defect: the receive loop loses its per-call limit and runs until a descriptor reads as not yet
-written or a frame is delivered. A device that writes each descriptor again as soon as it is handed
-back, with a frame that is not delivered, then keeps one call examining descriptors without end.
+The defect: the receive loop loses its per-call limit, so one call examines descriptors until one
+reads as not yet written or a frame is delivered, however many laps of the ring that takes.
 
 Expected to fail: the harness's `assert!` on the count of status words read, at the seventeenth read.
 
