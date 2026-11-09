@@ -337,7 +337,7 @@ impl Hardware for SimulatedHardware {
             }
         }
     }
-    fn read16(&mut self, offset: u64) -> u16 {
+    fn read_flash_status(&mut self, offset: u64) -> u16 {
         self.read(offset) as u16
     }
     fn delay_microseconds(&mut self, microseconds: u64) {
@@ -456,7 +456,7 @@ mod tests {
                 0
             }
             fn write(&mut self, _: u64, _: u32) {}
-            fn read16(&mut self, _: u64) -> u16 {
+            fn read_flash_status(&mut self, _: u64) -> u16 {
                 0
             }
             fn delay_microseconds(&mut self, microseconds: u64) {
