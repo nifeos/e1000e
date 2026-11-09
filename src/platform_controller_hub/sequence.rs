@@ -1225,7 +1225,7 @@ mod tests {
             self.writes.push((offset, value));
             self.registers.insert(offset, value);
         }
-        fn read16(&mut self, offset: u64) -> u16 {
+        fn read_flash_status(&mut self, offset: u64) -> u16 {
             self.read(offset) as u16
         }
         fn delay_microseconds(&mut self, microseconds: u64) {
