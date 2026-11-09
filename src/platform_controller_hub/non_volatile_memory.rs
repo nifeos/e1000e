@@ -319,3 +319,71 @@ pub(crate) fn read_word(
         (d >> 16) as u16
     })
 }
+
+#[cfg(kani)]
+mod proofs {
+    use super::*;
+
+    /// A flash that finishes every cycle at once and answers each data read with whatever the
+    /// model checker chooses, recording the byte offset each cycle was asked for.
+    struct AnyFlash {
+        /// The last value written to the linear address register, if any.
+        last_byte_offset: Option<u32>,
+        /// Whether anything at all was written.
+        written: bool,
+    }
+
+    impl Hardware for AnyFlash {
+        fn read(&mut self, offset: u64) -> u32 {
+            if offset == FLASH_REGISTERS_OFFSET_BYTES + HARDWARE_SEQUENCING_FLASH_STATUS_REGISTER {
+                u32::from(flash_status::DESCRIPTOR_VALID | flash_status::FLASH_CYCLE_DONE)
+            } else {
+                kani::any()
+            }
+        }
+        fn write(&mut self, offset: u64, value: u32) {
+            self.written = true;
+            if offset == FLASH_REGISTERS_OFFSET_BYTES + FLASH_LINEAR_BYTE_OFFSET_REGISTER {
+                self.last_byte_offset = Some(value);
+            }
+        }
+        fn read_flash_status(&mut self, offset: u64) -> u16 {
+            self.read(offset) as u16
+        }
+        fn delay_microseconds(&mut self, _microseconds: u64) {}
+        fn pci_vendor_id(&mut self) -> u16 {
+            0x8086
+        }
+        fn note(&mut self, _note: super::super::sequence::BringUpObservation) {}
+    }
+
+    /// Falsification: replayable `falsifications/platform_controller_hub.non_volatile_memory.proofs.a_word_read_stays_in_range_for_every_strap.patch`
+    /// **For every `STRAP` value and every word, the NVM size is one to 32 units of 4 KiB over two
+    /// banks, a word past the shadow RAM is refused before any register is written, and every
+    /// other word is read from the even word at or below its own in the bank the signature
+    /// chose.**
+    ///
+    #[kani::proof]
+    #[kani::unwind(12)]
+    fn a_word_read_stays_in_range_for_every_strap() {
+        let geometry = Geometry::from_strap(kani::any());
+        assert!(geometry.bank_words >= 1024 && geometry.bank_words <= 32 * 1024);
+        assert!(geometry.bank_words % 1024 == 0);
+        let word: u32 = kani::any();
+        let mut flash = AnyFlash {
+            last_byte_offset: None,
+            written: false,
+        };
+        let result = read_word(&mut flash, geometry, word);
+        if word >= SHADOW_RAM_WORDS {
+            assert!(result == Err(Error::OutOfRange));
+            assert!(!flash.written);
+        } else {
+            let byte = flash.last_byte_offset.unwrap();
+            assert!(byte <= LINEAR_BYTE_OFFSET_MASK);
+            let at = byte / 2;
+            assert!(at % 2 == 0);
+            assert!(at == (word & !1) || at == geometry.bank_words + word - word % 2);
+        }
+    }
+}
