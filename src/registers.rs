@@ -127,3 +127,28 @@ pub const RECEIVE_MAC_ADDRESS_0_LOW_REGISTER: u64 = 0x0_5400;
 #[doc(alias = "E1000_RAH")]
 #[doc(alias = "RAH0")]
 pub const RECEIVE_MAC_ADDRESS_0_HIGH_REGISTER: u64 = 0x0_5404;
+/// **Cyclic Redundancy Check (CRC) Error Count** (OpenBSD's `E1000_CRCERRS`,
+/// `sys/dev/pci/if_em_hw.h`). Received frames whose CRC was wrong. Read only, 32 bits, and reading
+/// it clears it.
+#[doc(alias = "CRC error count")]
+#[doc(alias = "E1000_CRCERRS")]
+#[doc(alias = "CRCERRS")]
+pub const CYCLIC_REDUNDANCY_CHECK_ERROR_COUNT_REGISTER: u64 = 0x0_4000;
+/// **Missed Packet Count** (OpenBSD's `E1000_MPC`, `sys/dev/pci/if_em_hw.h`). Read only, 32 bits,
+/// and reading it clears it.
+#[doc(alias = "missed packet count")]
+#[doc(alias = "E1000_MPC")]
+#[doc(alias = "MPC")]
+pub const MISSED_PACKET_COUNT_REGISTER: u64 = 0x0_4010;
+/// **Good Packets Received Count** (OpenBSD's `E1000_GPRC`, `sys/dev/pci/if_em_hw.h`). Read only,
+/// 32 bits, and reading it clears it.
+#[doc(alias = "good packets received count")]
+#[doc(alias = "E1000_GPRC")]
+#[doc(alias = "GPRC")]
+pub const GOOD_PACKETS_RECEIVED_COUNT_REGISTER: u64 = 0x0_4074;
+/// **Good Packets Transmitted Count** (OpenBSD's `E1000_GPTC`, `sys/dev/pci/if_em_hw.h`). Read
+/// only, 32 bits, and reading it clears it.
+#[doc(alias = "good packets transmitted count")]
+#[doc(alias = "E1000_GPTC")]
+#[doc(alias = "GPTC")]
+pub const GOOD_PACKETS_TRANSMITTED_COUNT_REGISTER: u64 = 0x0_4080;

@@ -54,3 +54,13 @@ port departs from it.
 5. `sequence::initialize_hardware`, which also sets up the copper link.
 6. Steps 8 to 11 of the 82574L list, then `sequence::transmit_errata` once transmit is on.
 7. `DataPlane::start`.
+
+## Counting frames
+
+Four counters in `registers` say what crossed the wire, independent of the rings:
+`GOOD_PACKETS_RECEIVED_COUNT_REGISTER`, `GOOD_PACKETS_TRANSMITTED_COUNT_REGISTER`,
+`CYCLIC_REDUNDANCY_CHECK_ERROR_COUNT_REGISTER` and `MISSED_PACKET_COUNT_REGISTER`. Each is 32 bits
+and clears when it is read, so a driver adds every read to a running total of its own.
+`sequence::initialize_hardware` does not clear them, so read each once and discard it before step
+11 of the 82574L list. They sit in BAR0's page at `0x4000`, outside `RECEIVE_QUEUE_PAGE` and
+`TRANSMIT_QUEUE_PAGE`, so in a split driver it is the kernel half that reads them.
