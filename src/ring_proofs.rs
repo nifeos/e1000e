@@ -9,7 +9,8 @@ const ENTRIES: u16 = TRANSMIT_ENTRIES;
 
 /// The device's side of the transmit ring: the second word of each descriptor, the tail the
 /// driver last wrote, and the next descriptor the device completes. The descriptors from
-/// `completed` up to `tail` are the device's; every other one is the driver's.
+/// `completed` up to `tail` are the device's; every other one is the driver's, and one the driver
+/// wrote that is no longer the device's reads back as sent.
 struct TransmitDevice {
     second_words: [Cell<u64>; ENTRIES as usize],
     tail: Cell<u16>,
@@ -40,14 +41,10 @@ impl TransmitDevice {
         }
     }
 
-    /// Complete `count` descriptors in order, writing descriptor done into each.
+    /// Complete `count` descriptors in order. A completed descriptor reads back with descriptor
+    /// done set (see [`Region`]'s `read_u64`), so completing is moving this cursor.
     fn complete(&self, count: u16) {
-        for _ in 0..count {
-            let index = self.completed.get();
-            let word = &self.second_words[usize::from(index)];
-            word.set(word.get() | u64::from(TRANSMIT_STATUS_DESCRIPTOR_DONE) << 32);
-            self.completed.set((index + 1) % ENTRIES);
-        }
+        self.completed.set((self.completed.get() + count) % ENTRIES);
     }
 }
 
@@ -57,7 +54,13 @@ impl DirectMemoryAccessRegion for Region<'_> {
     fn read_u64(&self, offset: u64) -> u64 {
         match TransmitDevice::transmit_slot(offset) {
             Some((index, true)) if offset % 16 == 8 => {
-                self.0.second_words[usize::from(index)].get()
+                let word = self.0.second_words[usize::from(index)].get();
+                // A descriptor the driver wrote and the device no longer holds has been sent.
+                if word != 0 && !self.0.holds(index) {
+                    word | u64::from(TRANSMIT_STATUS_DESCRIPTOR_DONE) << 32
+                } else {
+                    word
+                }
             }
             _ => 0,
         }
