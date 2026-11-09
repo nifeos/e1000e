@@ -91,6 +91,11 @@
 //! - **The link-up half is not ported** (`e1000_check_for_copper_link_ich8lan`). A link that comes
 //!   up and then loses frames points here first.
 //! - **Flow control is not configured, so it is not advertised** ([`sequence::setup_copper_link`]).
+//! - **Four more steps of FreeBSD's bring-up are left out**: the `GCR` no-snoop write, `WUFC`
+//!   cleared after the reset, `VET`, and `PBA` before the flush. [`sequence`] lists them.
+//! - **On the smallest NVM, a word past a bank's end is read from beyond it**, as FreeBSD's
+//!   `e1000_read_nvm_spt` reads it: a 4 KiB NVM has 1024-word banks, and any word up to the shadow
+//!   RAM's 2048 is accepted.
 //! - **The transmit flush diverges from FreeBSD in one place**, said at [`flush::tail_after_dummy_transmit`].
 //! - **A failed `CV_SMB_CTRL` read is not written back**, where FreeBSD writes a stale value.
 //! - **The licenses' second condition is the distributor's**: a binary built from this crate must
