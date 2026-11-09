@@ -638,19 +638,22 @@ mod tests {
         let f = SoftwareFlag::acquire(&mut s).unwrap();
         let mut id = PHYSICAL_LAYER_DEVICE_ID;
         assert!(
-            sequence::accessible(&mut s, &f, &mut id),
+            sequence::is_accessible(&mut s, &f, &mut id),
             "the same identifier"
         );
         let other = PHYSICAL_LAYER_DEVICE_ID ^ 0x0001_0000;
         let mut id = other;
-        assert!(sequence::accessible(&mut s, &f, &mut id), "a different one");
+        assert!(
+            sequence::is_accessible(&mut s, &f, &mut id),
+            "a different one"
+        );
         assert_eq!(id, other);
         f.release(&mut s);
 
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Dead, true);
         let f = SoftwareFlag::acquire(&mut s).unwrap();
         let mut id = PHYSICAL_LAYER_DEVICE_ID;
-        assert!(!sequence::accessible(&mut s, &f, &mut id), "no answer");
+        assert!(!sequence::is_accessible(&mut s, &f, &mut id), "no answer");
         assert_eq!(id, PHYSICAL_LAYER_DEVICE_ID);
         f.release(&mut s);
     }

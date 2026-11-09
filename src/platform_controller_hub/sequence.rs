@@ -338,7 +338,7 @@ pub fn initialize_physical_layer_device_workarounds(
     let f = SoftwareFlag::acquire(hardware)?;
     let mut id = 0;
     let reached = (|| {
-        if accessible(hardware, &f, &mut id) {
+        if is_accessible(hardware, &f, &mut id) {
             return Ok(AccessPath::Directly);
         }
         // Before toggling LANPHYPC, see whether forcing the MAC into SMBus mode is enough.
@@ -350,14 +350,14 @@ pub fn initialize_physical_layer_device_workarounds(
         // "Wait 50 milliseconds for MAC to finish any retries that it might be trying to
         // perform from previous attempts to acknowledge any phy read requests."
         delay_milliseconds(hardware, 50);
-        if accessible(hardware, &f, &mut id) {
+        if is_accessible(hardware, &f, &mut id) {
             return Ok(AccessPath::InSystemManagementBus);
         }
         if physical_layer_device::is_reset_blocked(hardware) {
             return Err(Error::PhysicalLayerDevicePowerCycleBlocked);
         }
         toggle_lanphypc(hardware);
-        if accessible(hardware, &f, &mut id) {
+        if is_accessible(hardware, &f, &mut id) {
             return Ok(AccessPath::AfterPhysicalLayerDevicePowerCycle);
         }
         // Toggling LANPHYPC brings the PHY out of SMBus mode, so take the MAC out too.
@@ -366,7 +366,7 @@ pub fn initialize_physical_layer_device_workarounds(
             mac::EXTENDED_DEVICE_CONTROL_REGISTER,
             CTRL_EXT_FORCE_SMBUS,
         );
-        if accessible(hardware, &f, &mut id) {
+        if is_accessible(hardware, &f, &mut id) {
             return Ok(AccessPath::AfterUnforce);
         }
         Err(Error::PhysicalLayerDeviceInaccessible)
@@ -522,7 +522,11 @@ const _: () = assert!(((u16::MAX as u32) << 16) & (u16::MAX as u32) == 0);
 ///
 /// FreeBSD's quirk is kept: an identifier that reads as `0xffff` without an `MDIC` error counts as
 /// accessible on a first probe (its `ret_val` is zero), so does this.
-pub(super) fn accessible(hardware: &mut impl Hardware, flag: &SoftwareFlag, id: &mut u32) -> bool {
+pub(super) fn is_accessible(
+    hardware: &mut impl Hardware,
+    flag: &SoftwareFlag,
+    id: &mut u32,
+) -> bool {
     let mut seen = 0u32;
     let mut last = Ok(0);
     for _ in 0..2 {
