@@ -474,7 +474,7 @@ mod tests {
         );
         assert_eq!(
             m.0,
-            u64::from(management_data_interface_control::POLLS)
+            u64::from(management_data_interface_control::MAXIMUM_POLLS)
                 * management_data_interface_control::POLL_MICROSECONDS
         );
         assert_eq!(m.0, 96_000, "FreeBSD's 96 ms: 1920 polls of 50 us");
@@ -541,10 +541,10 @@ mod tests {
     #[test]
     fn a_reset_block_is_polled_for_three_hundred_milliseconds() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
-        assert!(!physical_layer_device::reset_blocked(&mut s));
+        assert!(!physical_layer_device::is_reset_blocked(&mut s));
         assert_eq!(s.elapsed_microseconds, 0);
         s.mac.insert(registers::FIRMWARE_SEMAPHORE_REGISTER, 0);
-        assert!(physical_layer_device::reset_blocked(&mut s));
+        assert!(physical_layer_device::is_reset_blocked(&mut s));
         assert_eq!(s.elapsed_microseconds, 300_000);
     }
 
@@ -678,7 +678,7 @@ mod tests {
         let mut s =
             SimulatedHardware::new(PhysicalLayerDeviceStartState::InSystemManagementBus, false);
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION_1_REGISTER,
             0x1ff4,
         );
         s.physical_layer_device_registers.insert(
@@ -715,7 +715,7 @@ mod tests {
             .physical_layer_device_writes
             .iter()
             .filter(|w| {
-                w.0 == physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1
+                w.0 == physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION_1_REGISTER
             })
             .map(|w| w.1)
             .collect();

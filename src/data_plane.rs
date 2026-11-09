@@ -67,7 +67,18 @@ pub struct DataPlane {
 impl DataPlane {
     /// A data plane over the region at `data_plane_physical_address`. Call [`DataPlane::start`]
     /// before anything else.
+    ///
+    /// # Panics
+    ///
+    /// When the region, [`layout::DIRECT_MEMORY_ACCESS_REGION_BYTES`] long, would run past the
+    /// top of the physical address space, since every buffer address is the base plus an offset.
     pub fn new(data_plane_physical_address: u64) -> DataPlane {
+        assert!(
+            data_plane_physical_address
+                .checked_add(layout::DIRECT_MEMORY_ACCESS_REGION_BYTES)
+                .is_some(),
+            "the direct memory access region runs past the top of the address space"
+        );
         DataPlane {
             physical_address: data_plane_physical_address,
             receive_next: 0,

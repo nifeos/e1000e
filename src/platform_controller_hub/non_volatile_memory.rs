@@ -141,8 +141,9 @@ const _: () =
 
 /// `ICH_FLASH_LINEAR_ADDR_MASK`.
 pub(crate) const LINEAR_BYTE_OFFSET_MASK: u32 = 0x00ff_ffff;
-/// `ICH_FLASH_READ_COMMAND_TIMEOUT`, in 1 µs polls: ten seconds, FreeBSD's bound.
-pub(crate) const READ_COMMAND_TIMEOUT: u32 = 10_000_000;
+/// `ICH_FLASH_READ_COMMAND_TIMEOUT`, in one-microsecond polls: ten seconds, FreeBSD's bound.
+#[doc(alias = "ICH_FLASH_READ_COMMAND_TIMEOUT")]
+pub(crate) const MAXIMUM_READ_COMMAND_POLLS: u32 = 10_000_000;
 /// `ICH_FLASH_CYCLE_REPEAT_COUNT`.
 pub(crate) const CYCLE_REPEAT_COUNT: u32 = 10;
 /// The signature word (`E1000_ICH_NVM_SIG_WORD`).
@@ -203,7 +204,7 @@ fn initialize_cycle(hardware: &mut impl Hardware) -> Result<(), Error> {
         );
         return Ok(());
     }
-    for _ in 0..READ_COMMAND_TIMEOUT {
+    for _ in 0..MAXIMUM_READ_COMMAND_POLLS {
         let now = status_16_bit(hardware);
         if now & flash_status::IN_PROGRESS == 0 {
             hardware.write(
@@ -228,7 +229,7 @@ fn cycle(hardware: &mut impl Hardware) -> Result<(), Error> {
         u32::from(flash_control) << 16,
     );
     let mut s = 0;
-    for _ in 0..=READ_COMMAND_TIMEOUT {
+    for _ in 0..=MAXIMUM_READ_COMMAND_POLLS {
         s = status_16_bit(hardware);
         if s & flash_status::FLASH_CYCLE_DONE != 0 {
             break;
