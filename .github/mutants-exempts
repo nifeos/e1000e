@@ -2,6 +2,61 @@
 #   src/lib.rs:4 # swapping the operand order is the same arithmetic
 # A line without a reason is refused, and a line naming a survivor that no longer exists is
 # refused too, so this list can only shrink by a diff that says why.
+#
+# Rust binds ^ tighter than |, so swapping the k-th | of a chain `a | b | c` for ^ joins only the
+# two operands beside it. Each line below joins two operands that share no bit, and the
+# `const _: () = assert!` beside the code checks that wherever both are constants. A line that
+# leans on something the compiler cannot check says what.
 
-# Mutation census row carried from the source tree, as counts: caught 705, missed 72, timeout 4, unviable 9.
-# The 72 missed mutant(s) are not listed here because the census did not record which; the first weekly mutation run names each, and each goes below as `<file>:<line> # <reason>`.
+src/control_registers.rs:64 # RCTL's enable, broadcast and strip-CRC bits share no bit (asserted beside it)
+src/control_registers.rs:88 # TCTL's enable, pad, collision threshold and distance fields share no bit (asserted beside it)
+src/control_registers.rs:102 # TIPG's three gap fields share no bit (asserted beside it)
+src/descriptor.rs:48 # the five frame error bits are distinct single bits (asserted beside them)
+src/descriptor.rs:54 # the three transmit command bits are distinct single bits (asserted beside them)
+src/descriptor.rs:122 # a u16 length and the command byte at bit 24 share no bit (asserted beside it)
+src/platform_controller_hub/flush.rs:39 # the 512-byte length and the insert-FCS bit at bit 25 share no bit (asserted beside it)
+src/platform_controller_hub/flush.rs:68 # the masked register, the two thresholds and the granularity bit share no bit (asserted beside it)
+src/platform_controller_hub/non_volatile_memory.rs:99 # 1 >> 0 and 1 << 0 are both 1
+src/platform_controller_hub/non_volatile_memory.rs:117 # 1 >> 0 and 1 << 0 are both 1
+src/platform_controller_hub/non_volatile_memory.rs:194 # the status was just read, so every error bit that is set is already in it and is written back as one; ORing the two write-one-to-clear bits in adds ones only where the register holds zero, which the device ignores, and & or ^ there leaves the written word the same in every bit the device acts on
+src/platform_controller_hub/non_volatile_memory.rs:202 # the write just before it carried FLASH_CYCLE_DONE back as one if it was set, which cleared it, so this write's FLASH_CYCLE_DONE lands on a zero and the device ignores it whatever the operator
+src/platform_controller_hub/non_volatile_memory.rs:225 # the control half was last written without FLASH_CYCLE_GO (read_u32_at_byte writes only the byte count and the cycle type into a zeroed half), so the half read back never has it set and | and ^ agree
+src/platform_controller_hub/non_volatile_memory.rs:258 # initialize_cycle has just written the control half as zero (the 32-bit write FreeBSD makes on SPT), so the half read back is zero and dropping it by a left shift changes nothing
+src/platform_controller_hub/non_volatile_memory.rs:259 # the control half read back is zero (see line 258), so masking it with the byte-count field or with its complement both give zero
+src/platform_controller_hub/non_volatile_memory.rs:260 # the byte count lands inside the field the line before masked out (asserted beside it)
+src/platform_controller_hub/physical_layer_device.rs:160 # a page shifted left by five has no bit in the masked five-bit register field (asserted beside it)
+src/platform_controller_hub/physical_layer_device.rs:276 # the register (at most 31, checked above) at bit 16 and the device number at bit 21 share no bit; every caller passes device number 1 or 2
+src/platform_controller_hub/physical_layer_device.rs:278 # the device number at bit 21 (1 or 2 from every caller) and the read opcode at bit 27 share no bit
+src/platform_controller_hub/physical_layer_device.rs:299 # the u16 data and the register (at most 31, checked above) at bit 16 share no bit
+src/platform_controller_hub/physical_layer_device.rs:300 # the register at bit 16 and the device number at bit 21 share no bit; every caller passes device number 1 or 2
+src/platform_controller_hub/physical_layer_device.rs:302 # the device number at bit 21 (1 or 2 from every caller) and the write opcode at bit 26 share no bit
+src/platform_controller_hub/physical_layer_device.rs:531 # the high identifier word at bit 16 and the low u16 share no bit (asserted beside it)
+src/platform_controller_hub/sequence.rs:233 # the ULP configuration bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:234 # the ULP configuration bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:235 # the ULP configuration bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:236 # the ULP configuration bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:237 # the ULP configuration bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:238 # the ULP configuration bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:239 # the ULP configuration bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:261 # the two frequency bits are bits 8 and 12 (asserted beside them)
+src/platform_controller_hub/sequence.rs:547 # the high identifier word at bit 16 and the low u16 share no bit (asserted beside it)
+src/platform_controller_hub/sequence.rs:600 # the 50-millisecond value lands inside the counter field the word just masked out (asserted beside it)
+src/platform_controller_hub/sequence.rs:635 # CTRL.PHY_RST is clear on every entry (each pulse writes CTRL back without it, and a global reset returns CTRL to its defaults), so setting it by | or by ^ writes the same word
+src/platform_controller_hub/sequence.rs:922 # the strap address fits the address field the word just masked out (asserted beside it)
+src/platform_controller_hub/sequence.rs:923 # the address field and the packet error checking bit share no bit (asserted beside it)
+src/platform_controller_hub/sequence.rs:924 # the packet error checking and address valid bits share no bit (asserted beside it)
+src/platform_controller_hub/sequence.rs:963 # the two OEM bits share no bit (asserted beside them)
+src/platform_controller_hub/sequence.rs:1019 # bit 22 and CTRL_EXT_PHYPDEN share no bit (asserted beside them)
+src/platform_controller_hub/sequence.rs:1034 # TARC0 bits 23, 24, 26 and 27 are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:1044 # TARC1 bits 24, 26 and 30 are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:1050 # the two NFS disable bits share no bit (asserted beside them)
+src/platform_controller_hub/sequence.rs:1070 # FULL_TX_DESC_WB sets nothing outside the masked WTHRESH field except bit 24, which the next line sets again (asserted beside it)
+src/platform_controller_hub/sequence.rs:1126 # CTRL_FRCSPD and CTRL_FRCDPX share no bit (asserted beside them)
+src/platform_controller_hub/sequence.rs:1134 # the two I82577 configuration bits share no bit (asserted beside them)
+src/platform_controller_hub/sequence.rs:1142 # AUTO_MDI_MDIX lands inside the MDIX field the word just masked out (asserted beside it)
+src/platform_controller_hub/sequence.rs:1150 # the two pause bits share no bit (asserted beside them)
+src/platform_controller_hub/sequence.rs:1152 # the capability bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:1153 # the capability bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:1154 # the capability bits are distinct single bits (asserted beside them)
+src/platform_controller_hub/sequence.rs:1170 # the two MII control bits share no bit (asserted beside them)
+src/platform_controller_hub/sequence.rs:1195 # MULTIQ_2_REQ lands inside the MULTIQ_3_REQ field the word just masked out (asserted beside it)

@@ -522,7 +522,7 @@ const _: () = assert!(((u16::MAX as u32) << 16) & (u16::MAX as u32) == 0);
 ///
 /// FreeBSD's quirk is kept: an identifier that reads as `0xffff` without an `MDIC` error counts as
 /// accessible on a first probe (its `ret_val` is zero), so does this.
-fn accessible(hardware: &mut impl Hardware, flag: &SoftwareFlag, id: &mut u32) -> bool {
+pub(super) fn accessible(hardware: &mut impl Hardware, flag: &SoftwareFlag, id: &mut u32) -> bool {
     let mut seen = 0u32;
     let mut last = Ok(0);
     for _ in 0..2 {

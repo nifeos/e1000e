@@ -437,6 +437,33 @@ fn the_control_words_are_linuxs_values_exactly() {
     );
 }
 
+/// The single-bit control constants and the multicast table's length, as the numbers OpenBSD's
+/// `sys/dev/pci/if_em_hw.h` writes them, so a bit that moves cannot agree with itself.
+#[test]
+fn the_control_bits_are_the_numbers_openbsd_writes() {
+    assert_eq!(DEVICE_CONTROL_SET_LINK_UP, 0x0000_0040, "E1000_CTRL_SLU");
+    assert_eq!(
+        DEVICE_CONTROL_AUTO_SPEED_DETECTION_ENABLE, 0x0000_0020,
+        "E1000_CTRL_ASDE"
+    );
+    assert_eq!(DEVICE_CONTROL_GLOBAL_RESET, 0x0400_0000, "E1000_CTRL_RST");
+    assert_eq!(
+        EXTENDED_DEVICE_CONTROL_DRIVER_LOAD, 0x1000_0000,
+        "E1000_CTRL_EXT_DRV_LOAD"
+    );
+    assert_eq!(DEVICE_STATUS_LINK_UP, 0x0000_0002, "E1000_STATUS_LU");
+    assert_eq!(
+        RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE, 0x0000_8000,
+        "E1000_RFCTL_EXTEN"
+    );
+    assert_eq!(RECEIVE_MAC_ADDRESS_HIGH_VALID, 0x8000_0000, "E1000_RAH_AV");
+    assert_eq!(
+        registers::MULTICAST_TABLE_ARRAY_ENTRIES,
+        128,
+        "E1000_NUM_MTA_REGISTERS"
+    );
+}
+
 /// Each of the five frame-error bits drops the frame on its own, so no one of them can fall out
 /// of the mask unnoticed: CRC, symbol, sequence, carrier extension and receive data errors.
 #[test]
