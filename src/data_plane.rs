@@ -6,23 +6,39 @@ use super::*;
 /// The DMA region, as the data plane reads and writes it. Offsets are bytes from the region's
 /// base; an implementation bounds them (a mapped window, for example, that panics on an
 /// out-of-window offset rather than touching memory it was not given).
+///
+/// The device writes this memory behind the compiler's back, and reads what the driver writes
+/// without the compiler seeing a reader. So every method is a volatile access
+/// (`core::ptr::read_volatile` and `write_volatile`, or a copy built from them): a read is never
+/// served from an earlier one, and a write is never dropped or merged. `&self` on the reads is a
+/// borrow of the mapping, not a promise that the memory does not change. An implementation over a
+/// plain slice satisfies the signatures and is right only against a simulated device, as the
+/// host tests use one. Ordering against the device is [`Tails::barrier`]'s.
 pub trait DirectMemoryAccessRegion {
-    /// Read the little-endian `u64` at `offset`.
+    /// Read the little-endian `u64` at `offset`, as one volatile 64-bit load.
     fn read_u64(&self, offset: u64) -> u64;
-    /// Write `value` at `offset`, little-endian.
+    /// Write `value` at `offset`, little-endian, as one volatile 64-bit store.
     fn write_u64(&mut self, offset: u64, value: u64);
-    /// Copy `out.len()` bytes starting at `offset` into `out`.
+    /// Copy `out.len()` bytes starting at `offset` into `out`, by volatile loads.
     fn read_bytes(&self, offset: u64, out: &mut [u8]);
-    /// Copy `source` to `offset`.
+    /// Copy `source` to `offset`, by volatile stores.
     fn write_bytes(&mut self, offset: u64, source: &[u8]);
 }
 
 /// The two tail registers, and the ordering between them and the region. The only register writes
 /// the data plane makes.
+///
+/// Each tail write is one volatile 32-bit store to the queue's page of BAR0 (the device acts on
+/// every one, so none may be dropped or merged). [`Tails::barrier`] orders the region against the
+/// device on every architecture the crate builds for: on `x86_64` a compiler fence
+/// (`core::sync::atomic::compiler_fence`) is enough, since the processor keeps stores in order and
+/// loads in order; on `aarch64` it is `dmb osh` (Linux's `dma_wmb` and `dma_rmb` are its store and
+/// load halves, `dmb oshst` and `dmb oshld`); on `riscv64` it is `fence iorw, iorw` (Linux orders a
+/// store before a register write with `fence w, o` and two loads with `fence r, r`).
 pub trait Tails {
-    /// Write the receive tail (`RDT`).
+    /// Write the receive tail (`RDT`), as one volatile 32-bit store.
     fn set_receive_tail(&mut self, value: u32);
-    /// Write the transmit tail (`TDT`).
+    /// Write the transmit tail (`TDT`), as one volatile 32-bit store.
     fn set_transmit_tail(&mut self, value: u32);
     /// Order every region access before this against every access after it, as seen by the device.
     /// Called between filling a descriptor and the tail write that announces it, and between

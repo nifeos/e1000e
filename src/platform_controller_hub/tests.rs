@@ -142,7 +142,7 @@ impl Hardware for Registers<'_> {
     fn write(&mut self, offset: u64, value: u32) {
         self.log.borrow_mut().push(Step::Write(offset, value));
     }
-    fn read16(&mut self, offset: u64) -> u16 {
+    fn read_flash_status(&mut self, offset: u64) -> u16 {
         self.read(offset) as u16
     }
     fn delay_microseconds(&mut self, microseconds: u64) {
