@@ -369,7 +369,7 @@ mod proofs {
     fn a_word_read_stays_in_range_for_every_strap() {
         let geometry = Geometry::from_strap(kani::any());
         assert!(geometry.bank_words >= 1024 && geometry.bank_words <= 32 * 1024);
-        assert!(geometry.bank_words % 1024 == 0);
+        assert!(geometry.bank_words.is_multiple_of(1024));
         let word: u32 = kani::any();
         let mut flash = AnyFlash {
             last_byte_offset: None,
@@ -383,7 +383,7 @@ mod proofs {
             let byte = flash.last_byte_offset.unwrap();
             assert!(byte <= LINEAR_BYTE_OFFSET_MASK);
             let at = byte / 2;
-            assert!(at % 2 == 0);
+            assert!(at.is_multiple_of(2));
             assert!(at == (word & !1) || at == geometry.bank_words + word - word % 2);
         }
     }
