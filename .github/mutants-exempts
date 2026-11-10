@@ -11,9 +11,11 @@
 src/control_registers.rs:64 # RCTL's enable, broadcast and strip-CRC bits share no bit (asserted beside it)
 src/control_registers.rs:88 # TCTL's enable, pad, collision threshold and distance fields share no bit (asserted beside it)
 src/control_registers.rs:102 # TIPG's three gap fields share no bit (asserted beside it)
+src/descriptor.rs:36 # 1 >> 0 and 1 << 0 are both 1
 src/descriptor.rs:48 # the five frame error bits are distinct single bits (asserted beside them)
 src/descriptor.rs:54 # the three transmit command bits are distinct single bits (asserted beside them)
-src/descriptor.rs:99 # a timeout, not a survivor: with the & of the descriptor-done test mutated, no slot ever reads as not yet written, every empty one is dropped, and receive, which has no per-call bound, goes round the ring forever; the tests hang on it rather than pass
+src/descriptor.rs:67 # 1 >> 0 and 1 << 0 are both 1
+src/descriptor.rs:99 # the two mutants here time out until the per-call limit on receive lands
 src/descriptor.rs:122 # a u16 length and the command byte at bit 24 share no bit (asserted beside it)
 src/platform_controller_hub/flush.rs:41 # the 512-byte length and the insert-FCS bit at bit 25 share no bit (asserted beside it)
 src/platform_controller_hub/flush.rs:70 # the masked register, the two thresholds and the granularity bit share no bit (asserted beside it)
