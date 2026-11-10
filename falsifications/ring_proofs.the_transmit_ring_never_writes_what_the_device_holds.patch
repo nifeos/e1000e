@@ -1,0 +1,22 @@
+Falsifies `e1000e::ring_proofs::the_transmit_ring_never_writes_what_the_device_holds`.
+
+The defect: transmit stops refusing a full ring, so with fifteen frames the device holds, a
+sixteenth moves the tail onto the device's head. The device then reads its ring as empty and holds
+none of the frames the driver sent.
+
+Expected to fail: the harness's `assert!(device.held() == outstanding)`, after the sixteenth
+frame.
+
+diff --git a/src/data_plane.rs b/src/data_plane.rs
+--- a/src/data_plane.rs
++++ b/src/data_plane.rs
+@@ -177,9 +177,6 @@
+         }
+         self.reclaim(region);
+         let next = (self.transmit_next + 1) % TRANSMIT_ENTRIES;
+-        if next == self.transmit_clean {
+-            return Err(TransmitError::Full);
+-        }
+         region.write_bytes(layout::transmit_buffer(self.transmit_next), frame);
+         let descriptor_offset = layout::transmit_descriptor(self.transmit_next);
+         region.write_u64(

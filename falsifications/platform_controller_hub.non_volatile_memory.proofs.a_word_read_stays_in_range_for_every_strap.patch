@@ -1,0 +1,21 @@
+Falsifies `e1000e::platform_controller_hub::non_volatile_memory::proofs::a_word_read_stays_in_range_for_every_strap`.
+
+The defect: read_word stops refusing a word past the shadow RAM's 2048 words, so a caller's word
+offset reaches the flash registers unchecked.
+
+Expected to fail: the harness's `assert!(result == Err(Error::OutOfRange))`, on any word of 2048
+or more.
+
+diff --git a/src/platform_controller_hub/non_volatile_memory.rs b/src/platform_controller_hub/non_volatile_memory.rs
+--- a/src/platform_controller_hub/non_volatile_memory.rs
++++ b/src/platform_controller_hub/non_volatile_memory.rs
+@@ -307,9 +307,6 @@
+     geometry: Geometry,
+     word: u32,
+ ) -> Result<u16, Error> {
+-    if word >= SHADOW_RAM_WORDS {
+-        return Err(Error::OutOfRange);
+-    }
+     let bank = valid_bank(hardware, geometry).unwrap_or(0);
+     let at = bank * geometry.bank_words + word;
+     let d = read_u32(hardware, at - at % 2)?;
