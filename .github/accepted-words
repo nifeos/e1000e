@@ -2,4 +2,4 @@
 # know them: one lowercase word per line, then why it stays (the source that spells it so, or why
 # nobody says its expansion). A line without a reason is refused. Plurals with `s` or `es` follow.
 #
-# lba  the specifications and every reader say LBA
+# A line reads `<word>  <why it stays>`.

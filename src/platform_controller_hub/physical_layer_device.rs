@@ -109,14 +109,14 @@ pub mod management_data_interface_control {
     /// `sys/dev/pci/if_em_hw.h` and FreeBSD's `e1000_defines.h`, both `0x10000000`). The transaction
     /// completed.
     #[doc(alias = "E1000_MDIC_READY")]
-    pub const MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY: u32 = 0x1000_0000;
+    pub const MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY: u32 = 1 << 28;
     /// **Management data input/output transaction error** (`E1000_MDIC_ERROR`, OpenBSD's
     /// `sys/dev/pci/if_em_hw.h` and FreeBSD's `e1000_defines.h`, both `0x40000000`). The transaction
     /// failed.
     #[doc(alias = "E1000_MDIC_ERROR")]
-    pub const MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_ERROR: u32 = 0x4000_0000;
+    pub const MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_ERROR: u32 = 1 << 30;
     /// Polls before giving up: `E1000_GEN_POLL_TIMEOUT * 3`.
-    pub(crate) const POLLS: u32 = 640 * 3;
+    pub(crate) const MAXIMUM_POLLS: u32 = 640 * 3;
     /// Between polls, in microseconds.
     pub const POLL_MICROSECONDS: u64 = 50;
 }
@@ -225,7 +225,7 @@ pub mod registers {
     /// 779, register 16.
     #[doc(alias = "ultra-low-power configuration 1")]
     #[doc(alias = "I218_ULP_CONFIG1")]
-    pub(crate) const I218_ULTRA_LOW_POWER_CONFIGURATION1: u32 = paged_offset(779, 16);
+    pub(crate) const I218_ULTRA_LOW_POWER_CONFIGURATION_1_REGISTER: u32 = paged_offset(779, 16);
     /// **Original Equipment Manufacturer (OEM) Bits** (OpenBSD's `HV_OEM_BITS`, `sys/dev/pci/if_em_hw.h`; FreeBSD's `HV_OEM_BITS`,
     /// `e1000_ich8lan.h`). The bits the original equipment manufacturer's configuration sets: low
     /// power link up, gigabit disable and restart autonegotiation; page 768, register 25.
@@ -307,7 +307,7 @@ pub fn write_management_data_input_output(
 /// Poll `MDIC` for the transaction's end and judge it, the half both FreeBSD functions share.
 fn complete(hardware: &mut impl Hardware, register: u32) -> Result<u32, Error> {
     let mut v = 0;
-    for _ in 0..management_data_interface_control::POLLS {
+    for _ in 0..management_data_interface_control::MAXIMUM_POLLS {
         hardware.delay_microseconds(management_data_interface_control::POLL_MICROSECONDS);
         v = hardware.read(super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER);
         if v & management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY
@@ -494,7 +494,7 @@ pub fn update(
 
 /// `e1000_check_reset_block_ich8lan`: is firmware blocking a PHY reset? Polls `FWSM.RSPCIPHY` up to
 /// 31 times 10 ms apart, as FreeBSD does.
-pub(crate) fn reset_blocked(hardware: &mut impl Hardware) -> bool {
+pub(crate) fn is_reset_blocked(hardware: &mut impl Hardware) -> bool {
     for i in 0..=30 {
         if hardware.read(super::registers::FIRMWARE_SEMAPHORE_REGISTER) & ICH_FWSM_RSPCIPHY != 0 {
             return false;

@@ -1,0 +1,33 @@
+# The cargo-fuzz targets, in a workspace of their own so that `cargo build` and `cargo test` at the
+# root never build them. They need nightly: `cargo +nightly fuzz run <target>`.
+
+[package]
+name = "e1000e-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.e1000e]
+path = ".."
+
+[[bin]]
+name = "e1000e_transmit_ring"
+path = "fuzz_targets/e1000e_transmit_ring.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "e1000e_descriptor_ring_flush"
+path = "fuzz_targets/e1000e_descriptor_ring_flush.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

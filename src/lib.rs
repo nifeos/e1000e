@@ -1,11 +1,12 @@
 #![no_std]
 //! **The Intel `e1000e` family, as pure logic**: the 82574L and the Sunrise Point I219.
 //!
-//! Everything both halves of the driver compute, and nothing either touches. A kernel half resets
-//! the controller, reads its MAC address and programs the ring bases; a network-stack half fills
-//! descriptors and moves the tails. A ring's base and tail share a page ([`registers`]), so the
-//! input-output memory management unit (IOMMU) is the whole direct memory access (DMA) confinement;
-//! the process holds only [`RECEIVE_QUEUE_PAGE`] and [`TRANSMIT_QUEUE_PAGE`]. The register facts
+//! Everything a driver computes, and nothing it touches. A driver may split into a kernel half
+//! that resets the controller, reads its MAC address and programs the ring bases, and a stack half
+//! that fills descriptors and moves the tails; this crate serves either, or one driver that does
+//! both. A ring's base and tail share a page ([`registers`]), so with an input-output memory
+//! management unit (IOMMU) confining direct memory access (DMA), a stack half needs only
+//! [`RECEIVE_QUEUE_PAGE`] and [`TRANSMIT_QUEUE_PAGE`] mapped. The register facts
 //! come from Linux's `regs.h`, `defines.h` and `hw.h` for the 82574L and from FreeBSD's Intel
 //! shared code for the I219 ([`platform_controller_hub`]).
 
@@ -32,7 +33,7 @@ pub mod platform_controller_hub;
 /// Register offsets in base address register 0 (BAR0). Read from Linux's `regs.h`; queue 0 only.
 pub mod registers;
 
-/// Offsets inside the DMA region, which the kernel half allocates contiguous and confines whole.
+/// Offsets inside the DMA region, which the driver allocates contiguous and confines whole.
 pub mod layout;
 
 #[cfg(test)]

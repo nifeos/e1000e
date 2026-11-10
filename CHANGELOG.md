@@ -6,6 +6,7 @@ sentence beside it.
 ## Unreleased
 
 - First version.
+- Two cargo-fuzz targets in `fuzz/`: the transmit ring against a device that writes arbitrary status words, and the descriptor ring flush against arbitrary register values.
 
 ## BUGS
 
