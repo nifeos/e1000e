@@ -6,6 +6,7 @@ sentence beside it.
 ## Unreleased
 
 - First version.
+- A bare-metal smoke test in `tests/qemu-smoke/` runs the data plane under QEMU's `-device e1000e`. `docs/qemu.md` says how to run it and what a pass prints.
 - Two cargo-fuzz targets in `fuzz/`: the transmit ring against a device that writes arbitrary status words, and the descriptor ring flush against arbitrary register values.
 
 ## BUGS
