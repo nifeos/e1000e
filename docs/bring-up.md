@@ -37,6 +37,8 @@ The order follows FreeBSD's `em_reset`, `em_initialize_receive_unit` and
     `transmit_inter_packet_gap_register_value()` to `TRANSMIT_INTER_PACKET_GAP_REGISTER`.
 12. `DataPlane::start`, which posts every receive buffer and moves the receive tail.
 
+[qemu.md](qemu.md) runs this list under QEMU, one line per step, from `tests/qemu-smoke/`.
+
 A split driver does steps 1 to 11 in its kernel half and maps only `RECEIVE_QUEUE_PAGE` and
 `TRANSMIT_QUEUE_PAGE` into the stack half, which calls step 12 and everything after it.
 

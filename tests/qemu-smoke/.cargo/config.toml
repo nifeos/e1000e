@@ -1,0 +1,7 @@
+[build]
+target = "x86_64-unknown-none"
+
+# Linked at one fixed physical address and entered with paging off, so the code is not
+# position-independent: the 32-bit entry stub uses absolute addresses.
+[target.x86_64-unknown-none]
+rustflags = ["-C", "relocation-model=static"]

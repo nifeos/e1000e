@@ -39,7 +39,9 @@ drive a `DataPlane` with `start`, `receive` and `transmit`. Each trait's documen
 contract an implementation keeps: every access volatile, and the barrier each architecture needs.
 [`examples/host_ring.rs`](examples/host_ring.rs) drives both rings against a fake device
 (`cargo run --example host_ring`), and [`docs/bring-up.md`](docs/bring-up.md) gives the register
-order a driver performs before `start`.
+order a driver performs before `start`. [`docs/qemu.md`](docs/qemu.md) runs the same data plane
+against QEMU's emulated 82574L from a small bare-metal program, `tests/qemu-smoke/`, which sends a
+frame and receives the reply.
 
 ## What is proven
 
