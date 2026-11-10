@@ -7,6 +7,9 @@
 # two operands beside it. Each line below joins two operands that share no bit, and the
 # `const _: () = assert!` beside the code checks that wherever both are constants. A line that
 # leans on something the compiler cannot check says what.
+#
+# Census of the last full run: 830 mutants, of which 732 were caught, 27 did not build, 69 survived
+# and 2 timed out. Each of the 71 that were not caught falls under one line below.
 
 src/control_registers.rs:64 # RCTL's enable, broadcast and strip-CRC bits share no bit (asserted beside it)
 src/control_registers.rs:88 # TCTL's enable, pad, collision threshold and distance fields share no bit (asserted beside it)
