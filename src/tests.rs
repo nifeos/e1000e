@@ -102,17 +102,21 @@ impl SimulatedDevice {
     /// The device sends every descriptor up to the tail and writes `DD` back.
     fn drain_transmit(&mut self) {
         while u32::from(self.transmit_head) != self.transmit_tail {
-            let d = layout::transmit_descriptor(self.transmit_head);
-            let buffer_physical_address = self.read_u64(d);
-            let word = self.read_u64(d + 8);
-            assert_eq!((word >> 24) as u8, TRANSMIT_COMMAND);
-            let len = (word & 0xffff) as usize;
-            let mut f = vec![0; len];
-            self.read_bytes(buffer_physical_address - PHYSICAL_ADDRESS, &mut f);
-            self.sent.push(f);
-            self.write_u64(d + 8, word | (TRANSMIT_STATUS_DESCRIPTOR_DONE as u64) << 32);
-            self.transmit_head = (self.transmit_head + 1) % TRANSMIT_ENTRIES;
+            self.send_one();
         }
+    }
+    /// The device sends the descriptor at its head and writes `DD` back.
+    fn send_one(&mut self) {
+        let d = layout::transmit_descriptor(self.transmit_head);
+        let buffer_physical_address = self.read_u64(d);
+        let word = self.read_u64(d + 8);
+        assert_eq!((word >> 24) as u8, TRANSMIT_COMMAND);
+        let len = (word & 0xffff) as usize;
+        let mut f = vec![0; len];
+        self.read_bytes(buffer_physical_address - PHYSICAL_ADDRESS, &mut f);
+        self.sent.push(f);
+        self.write_u64(d + 8, word | (TRANSMIT_STATUS_DESCRIPTOR_DONE as u64) << 32);
+        self.transmit_head = (self.transmit_head + 1) % TRANSMIT_ENTRIES;
     }
 }
 
@@ -272,6 +276,30 @@ fn transmit_sends_exact_bytes_and_reports_full_until_the_device_catches_up() {
         simulator.drain_transmit();
         assert_eq!(simulator.sent.last(), Some(&f));
     }
+}
+
+/// **A descriptor the device has sent frees exactly one slot.** The device sends one frame of a
+/// full ring, so one more frame fits and the ring is full again, the clean cursor having moved
+/// one step and no further.
+#[test]
+fn one_sent_descriptor_frees_exactly_one_slot() {
+    let (mut simulator, mut data_plane) = started();
+    let f = frame(7, 60);
+    for _ in 0..TRANSMIT_ENTRIES - 1 {
+        simulator
+            .with(|s, r| data_plane.transmit(s, r, &f))
+            .unwrap();
+    }
+    assert!(!data_plane.can_transmit(&mut simulator));
+    simulator.send_one();
+    assert!(data_plane.can_transmit(&mut simulator));
+    simulator
+        .with(|s, r| data_plane.transmit(s, r, &f))
+        .unwrap();
+    assert_eq!(
+        simulator.with(|s, r| data_plane.transmit(s, r, &f)),
+        Err(TransmitError::Full)
+    );
 }
 
 /// A base whose region would wrap the address space is refused at once, not when a buffer

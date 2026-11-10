@@ -214,9 +214,14 @@ impl DataPlane {
     }
 
     /// Move the clean cursor past every descriptor the device has reported done. `RS` is set on
-    /// every frame, so the device writes `DD` on each in order.
+    /// every frame, so the device writes `DD` on each in order. The clean cursor never passes the
+    /// next one, so a ring's worth of steps is always enough, and the bound makes that a limit
+    /// the loop keeps rather than a property the cursor arithmetic has to hold.
     fn reclaim(&mut self, region: &impl DirectMemoryAccessRegion) {
-        while self.transmit_clean != self.transmit_next {
+        for _ in 0..TRANSMIT_ENTRIES {
+            if self.transmit_clean == self.transmit_next {
+                break;
+            }
             let word = region.read_u64(layout::transmit_descriptor(self.transmit_clean) + 8);
             if (word >> 32) as u8 & TRANSMIT_STATUS_DESCRIPTOR_DONE == 0 {
                 break;
