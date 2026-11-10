@@ -274,6 +274,15 @@ fn transmit_sends_exact_bytes_and_reports_full_until_the_device_catches_up() {
     }
 }
 
+/// A base whose region would wrap the address space is refused at once, not when a buffer
+/// address first overflows; the highest base that fits is accepted.
+#[test]
+fn a_region_running_past_the_top_of_physical_memory_is_refused() {
+    let highest = u64::MAX - layout::DIRECT_MEMORY_ACCESS_REGION_BYTES;
+    let _ = DataPlane::new(highest);
+    assert!(std::panic::catch_unwind(|| DataPlane::new(highest + 1)).is_err());
+}
+
 #[test]
 fn transmit_refuses_empty_and_oversized_frames() {
     let (mut simulator, mut data_plane) = started();
@@ -292,7 +301,9 @@ fn transmit_refuses_empty_and_oversized_frames() {
 #[test]
 fn the_layout_fits_its_pages_and_the_rings_fit_theirs() {
     assert_eq!(layout::DIRECT_MEMORY_ACCESS_REGION_PAGES, 18);
-    assert!(RECEIVE_ENTRIES as u64 * 16 <= PAGE && TRANSMIT_ENTRIES as u64 * 16 <= PAGE);
+    assert!(
+        RECEIVE_ENTRIES as u64 * 16 <= PAGE_BYTES && TRANSMIT_ENTRIES as u64 * 16 <= PAGE_BYTES
+    );
     assert_eq!(
         RECEIVE_ENTRIES as u64 * 16 % 128,
         0,
@@ -304,8 +315,8 @@ fn the_layout_fits_its_pages_and_the_rings_fit_theirs() {
         "TDLEN must be a multiple of 128"
     );
     assert!(MAXIMUM_FRAME_BYTES as u64 <= BUFFER_BYTES);
-    assert_eq!(layout::RECEIVE_BUFFERS_OFFSET_BYTES % PAGE, 0);
-    assert_eq!(layout::TRANSMIT_BUFFERS_OFFSET_BYTES % PAGE, 0);
+    assert_eq!(layout::RECEIVE_BUFFERS_OFFSET_BYTES % PAGE_BYTES, 0);
+    assert_eq!(layout::TRANSMIT_BUFFERS_OFFSET_BYTES % PAGE_BYTES, 0);
 }
 
 #[test]
@@ -336,6 +347,10 @@ fn the_queue_pages_hold_the_tails_and_not_the_control_registers() {
         registers::RECEIVE_MAC_ADDRESS_0_LOW_REGISTER,
         registers::RECEIVE_MAC_ADDRESS_0_HIGH_REGISTER,
         registers::RECEIVE_FILTER_CONTROL_REGISTER,
+        registers::CYCLIC_REDUNDANCY_CHECK_ERROR_COUNT_REGISTER,
+        registers::MISSED_PACKET_COUNT_REGISTER,
+        registers::GOOD_PACKETS_RECEIVED_COUNT_REGISTER,
+        registers::GOOD_PACKETS_TRANSMITTED_COUNT_REGISTER,
     ] {
         let page = r & !0xfff;
         assert!(
@@ -492,6 +507,14 @@ fn the_transmit_command_is_end_of_packet_frame_check_sequence_and_report_status(
     assert_eq!(TRANSMIT_COMMAND & 0x02, 0x02, "IFCS");
     assert_eq!(TRANSMIT_COMMAND & 0x08, 0x08, "RS");
     assert_eq!(TRANSMIT_COMMAND, 0x0b);
+}
+
+/// The descriptor status bits as the numbers OpenBSD's `sys/dev/pci/if_em_hw.h` writes them.
+#[test]
+fn the_descriptor_status_bits_are_the_numbers_openbsd_writes() {
+    assert_eq!(RECEIVE_STATUS_DESCRIPTOR_DONE, 0x01, "E1000_RXD_STAT_DD");
+    assert_eq!(RECEIVE_STATUS_END_OF_PACKET, 0x02, "E1000_RXD_STAT_EOP");
+    assert_eq!(TRANSMIT_STATUS_DESCRIPTOR_DONE, 0x01, "E1000_TXD_STAT_DD");
 }
 
 /// Every buffer and descriptor index is reduced modulo its ring, and successive slots sit one

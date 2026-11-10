@@ -7,18 +7,20 @@ pub const PCI_CONFIGURATION_DESCRIPTOR_RING_STATUS_REGISTER: u64 = 0xe4;
 /// The bit in it that says the descriptor rings need a flush (`FLUSH_DESC_REQUIRED`, OpenBSD's
 /// `sys/dev/pci/if_em.h`, then FreeBSD's `sys/dev/e1000/if_em.h`).
 #[doc(alias = "FLUSH_DESC_REQUIRED")]
-pub const DESCRIPTOR_RING_FLUSH_REQUIRED: u16 = 0x100;
+pub const DESCRIPTOR_RING_FLUSH_REQUIRED: u16 = 1 << 8;
 /// Future Extended NVM 11 (`FEXTNVM11`), the "disable `MULR` fix" bit, set before the flush. `MULR` is
 /// the sources' own term and is left unexpanded: no source expands it for this bit. FreeBSD's
 /// `e1000_ich8lan.h` defines `E1000_FEXTNVM11_DISABLE_MULR_FIX` with no comment, and the
 /// similar-looking `E1000_TCTL_MULR` ("Multiple request support") is a different bit in the
-/// transmit control register; nothing connects them, and the architect chose not to guess. "Future
+/// transmit control register; nothing connects them, and the maintainers chose not to guess. "Future
 /// Extended NVM 11" is the confirmed expansion of the register (FreeBSD's `e1000_regs.h` comment on
 /// `E1000_FEXTNVM11`, offset 0x5BBC). Sources: OpenBSD's `sys/dev/pci/if_em_hw.h`, then FreeBSD's
 /// `sys/dev/e1000/e1000_ich8lan.h`.
 #[doc(alias = "FEXTNVM11_DISABLE_MULR_FIX")]
 #[doc(alias = "E1000_FEXTNVM11_DISABLE_MULR_FIX")]
-pub const FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_DISABLE_MULR_FIX: u32 = 0x0000_2000;
+pub const FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_DISABLE_MULR_FIX: u32 = 1 << 13;
+/// The length in bytes of this crate's transmit ring, as `TDLEN` holds it: 16 bytes a descriptor.
+const TRANSMIT_RING_LENGTH_BYTES: u32 = crate::TRANSMIT_ENTRIES as u32 * 16;
 /// The dummy transmit's length: FreeBSD sends 512 bytes of the ring itself.
 pub(crate) const TRANSMIT_DUMMY_LENGTH_BYTES: u16 = 512;
 
@@ -87,9 +89,10 @@ pub trait FlushSupport {
 pub enum EmptiedRings {
     /// The device did not ask for a flush, or the transmit ring has no length.
     NotRequired,
-    /// The device asked, and its transmit ring is at `base`, not where the caller's ring is. Nothing
-    /// was sent, since the dummy descriptor must go where the device reads and the caller owns,
-    /// so the reset that follows may hang the device.
+    /// The device asked, and its transmit ring is not the caller's: it is at `base`, not where the
+    /// caller's ring is, or its length (`TDLEN`) is not this crate's ring of
+    /// [`crate::TRANSMIT_ENTRIES`] descriptors. Nothing was sent, since the dummy descriptor must
+    /// go where the device reads and the caller owns, so the reset that follows may hang the device.
     ForeignTransmitRing {
         /// The transmit ring's base as `TDBAL` and `TDBAH` hold it.
         base: u64,
@@ -104,7 +107,8 @@ pub enum EmptiedRings {
 /// `em_flush_desc_rings`, `em_flush_tx_ring` and `em_flush_rx_ring` (`if_em.c`), in their order.
 /// `transmit_ring` is the bus address of the caller's transmit ring, which is also the dummy
 /// descriptor's buffer. The one divergence is said at [`tail_after_dummy_transmit`], and one check is added: the
-/// flush runs only when the device's transmit ring is `transmit_ring`.
+/// flush runs only when the device's transmit ring is `transmit_ring`, at its base and of its
+/// length.
 #[doc(alias = "em_flush_desc_rings")]
 #[doc(alias = "em_flush_tx_ring")]
 #[doc(alias = "em_flush_rx_ring")]
@@ -126,17 +130,17 @@ pub fn empty_descriptor_rings(
         extended | FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_DISABLE_MULR_FIX,
     );
     let status = rings.descriptor_ring_status();
-    if !is_flush_required(
-        status,
-        hardware.read(TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER),
-    ) {
+    let transmit_descriptor_length = hardware.read(TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER);
+    if !is_flush_required(status, transmit_descriptor_length) {
         return EmptiedRings::NotRequired;
     }
     // The halves share no bit, so their sum is the joined address, and unlike an OR no mutation of
     // the sum survives a test that gives both halves a value.
     let base = u64::from(hardware.read(TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER))
         + (u64::from(hardware.read(TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER)) << 32);
-    if base != transmit_ring {
+    // The tail is reduced modulo this crate's ring below, which is the device's ring only when
+    // the length agrees as well as the base.
+    if base != transmit_ring || transmit_descriptor_length != TRANSMIT_RING_LENGTH_BYTES {
         return EmptiedRings::ForeignTransmitRing { base };
     }
     let transmit_control = hardware.read(TRANSMIT_CONTROL_REGISTER);

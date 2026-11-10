@@ -60,6 +60,33 @@ fn the_flush_runs_only_when_asked_and_the_ring_has_length() {
     );
 }
 
+/// The flush's and the management interface's single bits as the numbers FreeBSD's `if_em.h` and
+/// `e1000_ich8lan.h` and OpenBSD's `if_em_hw.h` write them.
+#[test]
+fn the_flush_and_management_bits_are_the_numbers_the_sources_write() {
+    assert_eq!(
+        flush::DESCRIPTOR_RING_FLUSH_REQUIRED,
+        0x0100,
+        "FLUSH_DESC_REQUIRED"
+    );
+    assert_eq!(
+        flush::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_DISABLE_MULR_FIX,
+        0x0000_2000,
+        "E1000_FEXTNVM11_DISABLE_MULR_FIX"
+    );
+    use physical_layer_device::management_data_interface_control as mdic;
+    assert_eq!(
+        mdic::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY,
+        0x1000_0000,
+        "E1000_MDIC_READY"
+    );
+    assert_eq!(
+        mdic::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_ERROR,
+        0x4000_0000,
+        "E1000_MDIC_ERROR"
+    );
+}
+
 /// The flush's register values exactly as FreeBSD writes them: the dummy descriptor is 512
 /// bytes with only `IFCS` (`txd_lower`), the tail moves one slot and wraps, and `RXDCTL` keeps
 /// every bit above the two thresholds, including the granularity bit when it was already set.
@@ -174,6 +201,17 @@ fn flush_steps(
     tail: u32,
     ring: u64,
 ) -> (flush::EmptiedRings, std::vec::Vec<Step>) {
+    flush_steps_with_length(statuses, device_ring, 256, tail, ring)
+}
+
+/// [`flush_steps`] with the device's `TDLEN` given as `length` in bytes.
+fn flush_steps_with_length(
+    statuses: &[u16],
+    device_ring: u64,
+    length: u32,
+    tail: u32,
+    ring: u64,
+) -> (flush::EmptiedRings, std::vec::Vec<Step>) {
     use crate::registers::{
         RECEIVE_CONTROL_REGISTER, TRANSMIT_CONTROL_REGISTER,
         TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_HIGH_REGISTER,
@@ -187,7 +225,7 @@ fn flush_steps(
             // The bit the flush sets is already on, so an XOR in place of the OR would clear it.
             0x1 | flush::FUTURE_EXTENDED_NON_VOLATILE_MEMORY_11_DISABLE_MULR_FIX,
         ),
-        (TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER, 256),
+        (TRANSMIT_DESCRIPTOR_LENGTH_BYTES_REGISTER, length),
         (
             TRANSMIT_DESCRIPTOR_BASE_PHYSICAL_ADDRESS_LOW_REGISTER,
             device_ring as u32,
@@ -249,6 +287,28 @@ fn the_flush_refuses_a_transmit_ring_that_is_not_the_callers() {
         flush::EmptiedRings::ForeignTransmitRing {
             base: 0x2_0000_1000
         }
+    );
+    let writes: std::vec::Vec<_> = steps
+        .iter()
+        .filter(|s| matches!(s, Step::Write(..) | Step::Descriptor(..)))
+        .collect();
+    assert_eq!(writes, [&MULR_FIX_DISABLED]);
+}
+
+/// A transmit ring at the caller's base but of another length is not the caller's either: its
+/// tail would index a ring this crate does not lay out.
+#[test]
+fn the_flush_refuses_a_transmit_ring_of_another_length() {
+    let (outcome, steps) = flush_steps_with_length(
+        &[flush::DESCRIPTOR_RING_FLUSH_REQUIRED],
+        0x1000,
+        512,
+        20,
+        0x1000,
+    );
+    assert_eq!(
+        outcome,
+        flush::EmptiedRings::ForeignTransmitRing { base: 0x1000 }
     );
     let writes: std::vec::Vec<_> = steps
         .iter()

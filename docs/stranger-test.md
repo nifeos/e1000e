@@ -11,6 +11,13 @@ What a run is:
 2. Follow the README and nothing else: build, test, and run the proofs.
 3. Note every place the README lied, omitted, or assumed. Those are findings against the README,
    not against the stranger.
-4. Record the date on the line below.
+4. Record the date on the `Last run:` line at the end, and keep the findings still open above it.
 
-Last run: none
+## Open findings
+
+- The last run did not exercise the Kani install commands, because Kani 0.68.0 was already
+  installed. The next runner should start without it.
+- The ring paragraph tells a reader to implement two traits and drive a `DataPlane`, with no code
+  to follow.
+
+Last run: 2026-11-09

@@ -13,7 +13,7 @@ pub const TRANSMIT_QUEUE_PAGE: u64 = 0x3000;
 /// same offset.
 pub const TAIL_IN_PAGE: u64 = registers::RECEIVE_DESCRIPTOR_TAIL_REGISTER - RECEIVE_QUEUE_PAGE;
 
-pub(crate) const PAGE: u64 = 4096;
+pub(crate) const PAGE_BYTES: u64 = 4096;
 
 /// Receive descriptors. Sixteen 16-byte descriptors are 256 bytes, which satisfies `RDLEN`'s
 /// multiple-of-128 rule and fits one page with room to grow.
@@ -33,13 +33,13 @@ pub const MAXIMUM_FRAME_BYTES: usize = 1514;
 /// Receive status: descriptor done. OpenBSD's `E1000_RXD_STAT_DD` (`sys/dev/pci/if_em_hw.h`),
 /// which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
 #[doc(alias = "E1000_RXD_STAT_DD")]
-pub const RECEIVE_STATUS_DESCRIPTOR_DONE: u8 = 0x01;
+pub const RECEIVE_STATUS_DESCRIPTOR_DONE: u8 = 1 << 0;
 
 /// Receive status: end of packet. A frame without it spans buffers, which a 2048-byte buffer and
 /// a 1514-byte maximum never need, so such a frame is dropped rather than reassembled. OpenBSD's
 /// `E1000_RXD_STAT_EOP` (`sys/dev/pci/if_em_hw.h`), spelled the same by FreeBSD and Linux.
 #[doc(alias = "E1000_RXD_STAT_EOP")]
-pub const RECEIVE_STATUS_END_OF_PACKET: u8 = 0x02;
+pub const RECEIVE_STATUS_END_OF_PACKET: u8 = 1 << 1;
 
 /// Receive errors that mean the frame is bad: CRC, symbol, sequence, carrier extension, receive data
 /// (bits 0, 1, 2, 4 and 7, a mask of `0x97`). OpenBSD's `E1000_RXD_ERR_FRAME_ERR_MASK`
@@ -64,7 +64,7 @@ const _: () = assert!(
 /// Transmit status: descriptor done. OpenBSD's `E1000_TXD_STAT_DD` (`sys/dev/pci/if_em_hw.h`),
 /// which FreeBSD and Linux spell the same.
 #[doc(alias = "E1000_TXD_STAT_DD")]
-pub const TRANSMIT_STATUS_DESCRIPTOR_DONE: u8 = 0x01;
+pub const TRANSMIT_STATUS_DESCRIPTOR_DONE: u8 = 1 << 0;
 
 /// What a receive descriptor's second word says, judged.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
