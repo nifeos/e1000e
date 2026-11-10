@@ -1,0 +1,29 @@
+# A bare-metal x86_64 program that drives QEMU's emulated 82574L (`-device e1000e`) with this
+# crate: it owns the memory-mapped registers and the direct memory access region, performs the
+# bring-up order in docs/bring-up.md, sends an Address Resolution Protocol request and receives the
+# reply. `run.sh` builds it and runs it under QEMU. A workspace of its own, so that `cargo build`
+# and `cargo test` at the root never build it.
+
+[package]
+name = "e1000e-qemu-smoke"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies.e1000e]
+path = "../.."
+
+[[bin]]
+name = "e1000e-qemu-smoke"
+path = "src/main.rs"
+test = false
+doc = false
+bench = false
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[workspace]
