@@ -347,6 +347,10 @@ fn the_queue_pages_hold_the_tails_and_not_the_control_registers() {
         registers::RECEIVE_MAC_ADDRESS_0_LOW_REGISTER,
         registers::RECEIVE_MAC_ADDRESS_0_HIGH_REGISTER,
         registers::RECEIVE_FILTER_CONTROL_REGISTER,
+        registers::CYCLIC_REDUNDANCY_CHECK_ERROR_COUNT_REGISTER,
+        registers::MISSED_PACKET_COUNT_REGISTER,
+        registers::GOOD_PACKETS_RECEIVED_COUNT_REGISTER,
+        registers::GOOD_PACKETS_TRANSMITTED_COUNT_REGISTER,
     ] {
         let page = r & !0xfff;
         assert!(

@@ -12,7 +12,7 @@ pub const DESCRIPTOR_RING_FLUSH_REQUIRED: u16 = 1 << 8;
 /// the sources' own term and is left unexpanded: no source expands it for this bit. FreeBSD's
 /// `e1000_ich8lan.h` defines `E1000_FEXTNVM11_DISABLE_MULR_FIX` with no comment, and the
 /// similar-looking `E1000_TCTL_MULR` ("Multiple request support") is a different bit in the
-/// transmit control register; nothing connects them, and the architect chose not to guess. "Future
+/// transmit control register; nothing connects them, and the maintainers chose not to guess. "Future
 /// Extended NVM 11" is the confirmed expansion of the register (FreeBSD's `e1000_regs.h` comment on
 /// `E1000_FEXTNVM11`, offset 0x5BBC). Sources: OpenBSD's `sys/dev/pci/if_em_hw.h`, then FreeBSD's
 /// `sys/dev/e1000/e1000_ich8lan.h`.

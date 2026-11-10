@@ -7,9 +7,9 @@ pub const VENDOR_INTEL: u16 = 0x8086;
 /// The device ids this driver claims, with what each is. Read from Linux's `hw.h` on 2026-10-04.
 ///
 /// **Deliberately narrow.** The 82574L is what QEMU's `-device e1000e` presents, and proves the
-/// sequence. The I219 entries are the Sunrise Point (SPT) generation only, which is what an `OptiPlex`
-/// 7050 carries (Dell's specification sheet calls it the `i219-LM`). A PCI survey of one
-/// settled which: `00:1f.6 8086:15e3`, the `I219-LM5`. The other SPT rows
+/// sequence. The I219 entries are the Sunrise Point (SPT) generation only. One Sunrise Point
+/// desktop's PCI survey showed `00:1f.6 8086:15e3`, the `I219-LM5`, which is the part the port has
+/// run on. The other SPT rows
 /// stay because FreeBSD runs one sequence for the whole class. Later PCH generations (Cannon Lake onward,
 /// dozens of ids) need the bench to prove one before the family is widened, because the
 /// generation-specific workarounds are exactly what this crate does not do (`BUGS`).

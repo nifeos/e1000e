@@ -5,6 +5,21 @@
 //! rings are programmed, with [`transmit_errata`] once transmit is on. Only FreeBSD's
 //! `e1000_pch_spt` branches are carried ([`super::is_platform_controller_hub_device`]), and each function names the FreeBSD
 //! function it follows.
+//!
+//! # Departures from FreeBSD
+//!
+//! Besides flow control and the master or slave setting ([`setup_copper_link`]), the port leaves
+//! out four steps of its source, and no pass here performs them. A driver that wants FreeBSD's
+//! behavior performs them itself:
+//!
+//! - `e1000_init_hw_ich8lan` ends with `e1000_set_pcie_no_snoop_generic`, a read-modify-write of
+//!   the PCI Express control register (`GCR`, offset `0x5B00`) that clears the no-snoop bits.
+//! - `em_reset` writes zero to the wake-up filter control register (`WUFC`) after the global reset.
+//! - `em_reset` writes the virtual local area network (VLAN) ethertype, `0x8100`, to `VET` after `e1000_init_hw`.
+//! - `em_reset` writes the packet buffer allocation (`PBA`) before its descriptor-ring flush.
+//!   [`global_reset`] writes it at its start, so after the flush that precedes it.
+//!
+//! The effect of each on silicon is unmeasured.
 
 //! ```text
 //! SPDX-License-Identifier: BSD-3-Clause
