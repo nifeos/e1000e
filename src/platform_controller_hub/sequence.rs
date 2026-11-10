@@ -353,7 +353,7 @@ pub fn initialize_physical_layer_device_workarounds(
     let f = SoftwareFlag::acquire(hardware)?;
     let mut id = 0;
     let reached = (|| {
-        if accessible(hardware, &f, &mut id) {
+        if is_accessible(hardware, &f, &mut id) {
             return Ok(AccessPath::Directly);
         }
         // Before toggling LANPHYPC, see whether forcing the MAC into SMBus mode is enough.
@@ -365,14 +365,14 @@ pub fn initialize_physical_layer_device_workarounds(
         // "Wait 50 milliseconds for MAC to finish any retries that it might be trying to
         // perform from previous attempts to acknowledge any phy read requests."
         delay_milliseconds(hardware, 50);
-        if accessible(hardware, &f, &mut id) {
+        if is_accessible(hardware, &f, &mut id) {
             return Ok(AccessPath::InSystemManagementBus);
         }
-        if physical_layer_device::reset_blocked(hardware) {
+        if physical_layer_device::is_reset_blocked(hardware) {
             return Err(Error::PhysicalLayerDevicePowerCycleBlocked);
         }
         toggle_lanphypc(hardware);
-        if accessible(hardware, &f, &mut id) {
+        if is_accessible(hardware, &f, &mut id) {
             return Ok(AccessPath::AfterPhysicalLayerDevicePowerCycle);
         }
         // Toggling LANPHYPC brings the PHY out of SMBus mode, so take the MAC out too.
@@ -381,7 +381,7 @@ pub fn initialize_physical_layer_device_workarounds(
             mac::EXTENDED_DEVICE_CONTROL_REGISTER,
             CTRL_EXT_FORCE_SMBUS,
         );
-        if accessible(hardware, &f, &mut id) {
+        if is_accessible(hardware, &f, &mut id) {
             return Ok(AccessPath::AfterUnforce);
         }
         Err(Error::PhysicalLayerDeviceInaccessible)
@@ -390,7 +390,7 @@ pub fn initialize_physical_layer_device_workarounds(
     let at = reached?;
     hardware.note(BringUpObservation::PhysicalLayerDeviceReached { at, id });
 
-    if physical_layer_device::reset_blocked(hardware) {
+    if physical_layer_device::is_reset_blocked(hardware) {
         // FreeBSD: ERROR_REPORT("Reset blocked by ME") and success.
         hardware.note(BringUpObservation::PhysicalLayerDeviceResetBlocked);
         return Ok(id);
@@ -398,7 +398,7 @@ pub fn initialize_physical_layer_device_workarounds(
     // "Reset the PHY before any access to it. Doing so, ensures that the PHY is in a known good
     // state before we read/write PHY registers."
     physical_layer_device_reset_generic(hardware)?;
-    if physical_layer_device::reset_blocked(hardware) {
+    if physical_layer_device::is_reset_blocked(hardware) {
         return Err(Error::BlockedAfterPhysicalLayerDeviceReset);
     }
     Ok(id)
@@ -497,18 +497,18 @@ fn leave_ultra_low_power_by_physical_layer_device(
         let u = physical_layer_device::read(
             hardware,
             &f,
-            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION_1_REGISTER,
         )? & !ULTRA_LOW_POWER_CONFIGURATION1_CLEARED;
         let _ = physical_layer_device::write(
             hardware,
             &f,
-            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION_1_REGISTER,
             u,
         );
         let _ = physical_layer_device::write(
             hardware,
             &f,
-            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION_1_REGISTER,
             u | I218_ULTRA_LOW_POWER_CONFIGURATION1_START,
         );
         clear(
@@ -537,7 +537,11 @@ const _: () = assert!(((u16::MAX as u32) << 16) & (u16::MAX as u32) == 0);
 ///
 /// FreeBSD's quirk is kept: an identifier that reads as `0xffff` without an `MDIC` error counts as
 /// accessible on a first probe (its `ret_val` is zero), so does this.
-pub(super) fn accessible(hardware: &mut impl Hardware, flag: &SoftwareFlag, id: &mut u32) -> bool {
+pub(super) fn is_accessible(
+    hardware: &mut impl Hardware,
+    flag: &SoftwareFlag,
+    id: &mut u32,
+) -> bool {
     let mut seen = 0u32;
     let mut last = Ok(0);
     for _ in 0..2 {
@@ -637,7 +641,7 @@ fn toggle_lanphypc(hardware: &mut impl Hardware) {
 /// **`e1000_phy_hw_reset_generic`**: pulse `CTRL.PHY_RST` under the semaphore, then wait for the
 /// configuration to finish.
 fn physical_layer_device_reset_generic(hardware: &mut impl Hardware) -> Result<(), Error> {
-    if physical_layer_device::reset_blocked(hardware) {
+    if physical_layer_device::is_reset_blocked(hardware) {
         return Ok(());
     }
     let f = SoftwareFlag::acquire(hardware)?;
@@ -750,7 +754,7 @@ pub fn global_reset(
     // "Full-chip reset requires MAC and PHY reset at the same time to make sure the interface
     // between MAC and the external PHY is reset."
     let mut device_control = hardware.read(mac::DEVICE_CONTROL_REGISTER);
-    let with_physical_layer_device = !physical_layer_device::reset_blocked(hardware);
+    let with_physical_layer_device = !physical_layer_device::is_reset_blocked(hardware);
     if with_physical_layer_device {
         device_control |= CTRL_PHYSICAL_LAYER_DEVICE_RESET;
     }
@@ -800,7 +804,7 @@ pub fn global_reset(
 /// **`e1000_post_phy_reset_ich8lan`**, SPT: clear the host wakeup bit, replay the NVM's PHY
 /// configuration, and apply the OEM bits.
 fn post_physical_layer_device_reset(hardware: &mut impl Hardware) -> Result<(), Error> {
-    if physical_layer_device::reset_blocked(hardware) {
+    if physical_layer_device::is_reset_blocked(hardware) {
         return Ok(());
     }
     // "Allow time for h/w to get to quiescent state after reset"
@@ -982,7 +986,7 @@ fn oem_bits(hardware: &mut impl Hardware) -> Result<(), Error> {
         if pc & PHYSICAL_LAYER_DEVICE_CTRL_D0A_LPLU != 0 {
             v |= OEM_BITS_LOW_POWER_LINK_UP;
         }
-        if !physical_layer_device::reset_blocked(hardware) {
+        if !physical_layer_device::is_reset_blocked(hardware) {
             v |= OEM_BITS_RESTART_AUTONEGOTIATION;
         }
         physical_layer_device::write(
@@ -1073,7 +1077,7 @@ pub fn initialize_hardware(hardware: &mut impl Hardware) -> Result<(), Error> {
     set(hardware, mac::DEVICE_CONTROL_REGISTER, CTRL_MEHE);
 
     // `e1000_setup_link_ich8lan`: the copper link, unless firmware blocks the PHY.
-    if !physical_layer_device::reset_blocked(hardware) {
+    if !physical_layer_device::is_reset_blocked(hardware) {
         setup_copper_link(hardware)?;
     }
 
@@ -1719,7 +1723,7 @@ mod tests {
             0x4001,
         );
         s.physical_layer_device_registers.insert(
-            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1,
+            physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION_1_REGISTER,
             0x1ff5,
         );
         assert!(initialize_physical_layer_device_workarounds(&mut s).is_ok());
@@ -1740,7 +1744,7 @@ mod tests {
             [0x4001]
         );
         assert_eq!(
-            to(physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION1),
+            to(physical_layer_device::registers::I218_ULTRA_LOW_POWER_CONFIGURATION_1_REGISTER),
             [0x0281, 0x0281]
         );
         assert_eq!(s.physical_layer_device_resets, 2);
