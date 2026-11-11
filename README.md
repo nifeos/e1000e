@@ -45,7 +45,7 @@ frame and receives the reply.
 
 ## What is proven
 
-These Kani harnesses cover the input a device or a caller controls:
+These Kani harnesses cover the input a device or a caller controls.
 
 - `proofs::a_delivered_frame_always_fits_the_buffer_and_the_room`: for every status word a device
   can write and every caller buffer size, a frame that `receive_verdict` delivers fits both the
@@ -56,14 +56,15 @@ These Kani harnesses cover the input a device or a caller controls:
   every paged access to the physical (PHY) layer device names a PHY address that exists, the
   offset's own register and the offset's own page.
 - `receive_proofs::a_receive_reads_only_its_own_slot_and_no_more_than_the_caller_has_room_for`:
-  against a device that rewrites every status word at each read and a caller buffer of any size,
-  one `receive` reads frame bytes at most once, only from the buffer of the descriptor it
-  consumed, only as many bytes as the frame it returns and never more than the caller's room, and
+  the device rewrites every status word at each read and the caller's buffer is any size. One
+  `receive` then reads frame bytes at most once. It reads only the buffer of the descriptor it
+  consumed, only as many bytes as the frame it returns, and never more than the caller's room. It
   leaves the cursor on the descriptor after the last one consumed.
-- `proofs::one_receive_examines_at_most_one_lap_of_the_ring`, `ring_proofs::the_transmit_ring_never_writes_what_the_device_holds`
-  and `platform_controller_hub::non_volatile_memory::proofs::a_word_read_stays_in_range_for_every_strap`
-  cover the receive lap limit, the transmit ring against a device that completes descriptors in
-  order, and the non-volatile memory word read.
+- `proofs::one_receive_examines_at_most_one_lap_of_the_ring`: the receive lap limit.
+- `ring_proofs::the_transmit_ring_never_writes_what_the_device_holds`: the transmit ring against a
+  device that completes descriptors in order.
+- `platform_controller_hub::non_volatile_memory::proofs::a_word_read_stays_in_range_for_every_strap`:
+  the non-volatile memory word read.
 
 The proofs need Kani, which `rustup` does not install. Run `cargo install --locked
 kani-verifier --version 0.68.0`, then `cargo kani setup`. The setup step downloads a model
