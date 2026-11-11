@@ -132,16 +132,22 @@ impl DataPlane {
         tails.set_receive_tail(u32::from(RECEIVE_ENTRIES - 1));
     }
 
-    /// Take the next received frame into `out`, returning its length, or `None` when the device has
-    /// written nothing new. A descriptor judged [`ReceiveVerdict::Drop`] is consumed and counted
+    /// Take the next received frame into `out`, returning its length, or `None` when no frame was
+    /// delivered by this call. A descriptor judged [`ReceiveVerdict::Drop`] is consumed and counted
     /// and the next one is tried, so one bad frame cannot stall the ring.
+    ///
+    /// One call examines at most [`RECEIVE_ENTRIES`] descriptors, one lap of the ring, and returns
+    /// `None` when that many were consumed without a frame to deliver. `None` therefore means
+    /// either that the device has written nothing new or that this call reached its limit; a
+    /// caller that wants every pending frame calls again, and [`DataPlane::receive_cursor`] names
+    /// the descriptor the next call starts from.
     pub fn receive(
         &mut self,
         region: &mut impl DirectMemoryAccessRegion,
         tails: &mut impl Tails,
         out: &mut [u8],
     ) -> Option<usize> {
-        loop {
+        for _ in 0..RECEIVE_ENTRIES {
             let descriptor_offset = layout::receive_descriptor(self.receive_next);
             let verdict = receive_verdict(region.read_u64(descriptor_offset + 8), out.len());
             if verdict == ReceiveVerdict::NotYet {
@@ -174,6 +180,7 @@ impl DataPlane {
                 return got;
             }
         }
+        None
     }
 
     /// Queue `frame` for transmission.
