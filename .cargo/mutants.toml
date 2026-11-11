@@ -4,4 +4,6 @@
 # hold harnesses only; the expression matches the inline `proofs` modules of
 # `physical_layer_device` and `non_volatile_memory`.
 exclude_globs = ["src/proofs.rs", "src/ring_proofs.rs", "src/receive_proofs.rs"]
-exclude_re = ["proofs::"]
+# `1 << 0` is the one bit the register naming rule writes as a shift and a shift by zero cannot
+# change, so its `<<` to `>>` swap is an equivalent mutant; the expression names its position.
+exclude_re = ["proofs::", "src/control_registers\\.rs:42:69: replace << with >>"]

@@ -227,6 +227,7 @@ fn a_frame_larger_than_the_callers_room_is_dropped_not_truncated() {
         None
     );
     assert_eq!(data_plane.dropped, 1);
+    assert_eq!(data_plane.dropped_for_lack_of_room, 1);
 }
 
 #[test]
@@ -372,6 +373,8 @@ fn the_queue_pages_hold_the_tails_and_not_the_control_registers() {
         registers::RECEIVE_CONTROL_REGISTER,
         registers::TRANSMIT_CONTROL_REGISTER,
         registers::INTERRUPT_CLEAR_MASK_REGISTER,
+        registers::INTERRUPT_SET_MASK_REGISTER,
+        registers::INTERRUPT_THROTTLING_REGISTER,
         registers::RECEIVE_MAC_ADDRESS_0_LOW_REGISTER,
         registers::RECEIVE_MAC_ADDRESS_0_HIGH_REGISTER,
         registers::RECEIVE_FILTER_CONTROL_REGISTER,
@@ -722,4 +725,55 @@ fn receive_returns_after_one_lap_of_frames_it_does_not_deliver() {
         assert_eq!(data_plane.dropped, call * u32::from(RECEIVE_ENTRIES));
         assert_eq!(device.refills, u64::from(call) * u64::from(RECEIVE_ENTRIES));
     }
+}
+
+#[test]
+fn the_interrupt_registers_and_cause_bits_sit_where_the_sources_put_them() {
+    assert_eq!(registers::INTERRUPT_CAUSE_READ_REGISTER, 0xc0);
+    assert_eq!(registers::INTERRUPT_THROTTLING_REGISTER, 0xc4);
+    assert_eq!(registers::INTERRUPT_SET_MASK_REGISTER, 0xd0);
+    assert_eq!(registers::INTERRUPT_CLEAR_MASK_REGISTER, 0xd8);
+    assert_eq!(INTERRUPT_CAUSE_TRANSMIT_DESCRIPTOR_WRITTEN_BACK, 0x01);
+    assert_eq!(INTERRUPT_CAUSE_TRANSMIT_QUEUE_EMPTY, 0x02);
+    assert_eq!(INTERRUPT_CAUSE_LINK_STATUS_CHANGE, 0x04);
+    assert_eq!(INTERRUPT_CAUSE_RECEIVE_SEQUENCE_ERROR, 0x08);
+    assert_eq!(INTERRUPT_CAUSE_RECEIVE_DESCRIPTOR_MINIMUM_THRESHOLD, 0x10);
+    assert_eq!(INTERRUPT_CAUSE_RECEIVE_OVERRUN, 0x40);
+    assert_eq!(INTERRUPT_CAUSE_RECEIVE_TIMER, 0x80);
+}
+
+#[test]
+fn a_frame_of_the_largest_size_with_a_vlan_tag_goes_both_ways() {
+    assert_eq!(MAXIMUM_FRAME_BYTES, 14 + 4 + 1500);
+    let (mut simulator, mut data_plane) = started();
+    let f = frame(7, MAXIMUM_FRAME_BYTES);
+    assert!(simulator.deliver(&f, MAXIMUM_FRAME_BYTES as u16, GOOD, 0));
+    let mut out = [0u8; MAXIMUM_FRAME_BYTES];
+    assert_eq!(
+        simulator.with(|s, r| data_plane.receive(s, r, &mut out)),
+        Some(MAXIMUM_FRAME_BYTES)
+    );
+    assert_eq!(simulator.with(|s, r| data_plane.transmit(s, r, &f)), Ok(()));
+    assert!(simulator.deliver(&frame(8, 1519), 1519, GOOD, 0));
+    assert_eq!(
+        simulator.with(|s, r| data_plane.receive(s, r, &mut out)),
+        None
+    );
+    assert_eq!(data_plane.dropped, 1);
+    assert_eq!(data_plane.dropped_for_lack_of_room, 0);
+}
+
+#[test]
+fn a_caller_buffer_too_small_is_counted_apart_from_a_bad_frame() {
+    let (mut simulator, mut data_plane) = started();
+    assert!(simulator.deliver(&frame(1, 600), 600, GOOD, 0)); // good, but too big for the caller
+    assert!(simulator.deliver(&frame(2, 64), 64, GOOD, 0x01)); // CRC error: bad whatever the room
+    assert!(simulator.deliver(&frame(3, 8), 8, GOOD, 0)); // shorter than a header
+    let mut small = [0u8; 576];
+    assert_eq!(
+        simulator.with(|s, r| data_plane.receive(s, r, &mut small)),
+        None
+    );
+    assert_eq!(data_plane.dropped, 3);
+    assert_eq!(data_plane.dropped_for_lack_of_room, 1);
 }

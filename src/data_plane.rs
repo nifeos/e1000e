@@ -78,6 +78,9 @@ pub struct DataPlane {
     transmit_clean: u16,
     /// Frames the device wrote that were not delivered, for a report line.
     pub dropped: u32,
+    /// Of [`DataPlane::dropped`], the frames that were good but longer than the caller's buffer
+    /// in that [`DataPlane::receive`] call. Provisional name.
+    pub dropped_for_lack_of_room: u32,
 }
 
 impl DataPlane {
@@ -101,6 +104,7 @@ impl DataPlane {
             transmit_next: 0,
             transmit_clean: 0,
             dropped: 0,
+            dropped_for_lack_of_room: 0,
         }
     }
 
@@ -136,6 +140,9 @@ impl DataPlane {
     /// delivered by this call. A descriptor judged [`ReceiveVerdict::Drop`] is consumed and counted
     /// and the next one is tried, so one bad frame cannot stall the ring.
     ///
+    /// A good frame longer than `out` is dropped, counted in [`DataPlane::dropped`] and in
+    /// [`DataPlane::dropped_for_lack_of_room`], and never truncated.
+    ///
     /// One call examines at most [`RECEIVE_ENTRIES`] descriptors, one lap of the ring, and returns
     /// `None` when that many were consumed without a frame to deliver. `None` therefore means
     /// either that the device has written nothing new or that this call reached its limit; a
@@ -149,7 +156,8 @@ impl DataPlane {
     ) -> Option<usize> {
         for _ in 0..RECEIVE_ENTRIES {
             let descriptor_offset = layout::receive_descriptor(self.receive_next);
-            let verdict = receive_verdict(region.read_u64(descriptor_offset + 8), out.len());
+            let word = region.read_u64(descriptor_offset + 8);
+            let verdict = receive_verdict(word, out.len());
             if verdict == ReceiveVerdict::NotYet {
                 return None;
             }
@@ -163,6 +171,12 @@ impl DataPlane {
                 }
                 _ => {
                     self.dropped = self.dropped.wrapping_add(1);
+                    // The same word with unlimited room: a frame that would have been delivered
+                    // was dropped for the caller's buffer alone.
+                    if matches!(receive_verdict(word, usize::MAX), ReceiveVerdict::Frame(_)) {
+                        self.dropped_for_lack_of_room =
+                            self.dropped_for_lack_of_room.wrapping_add(1);
+                    }
                     None
                 }
             };

@@ -47,9 +47,13 @@ mod supported_devices;
 pub use control_registers::{
     DEVICE_CONTROL_AUTO_SPEED_DETECTION_ENABLE, DEVICE_CONTROL_GLOBAL_RESET,
     DEVICE_CONTROL_SET_LINK_UP, DEVICE_STATUS_LINK_UP, EXTENDED_DEVICE_CONTROL_DRIVER_LOAD,
-    RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE, RECEIVE_MAC_ADDRESS_HIGH_VALID,
-    receive_control_register_value, station_mac_address_from_receive_words,
-    transmit_control_register_value, transmit_inter_packet_gap_register_value,
+    INTERRUPT_CAUSE_LINK_STATUS_CHANGE, INTERRUPT_CAUSE_RECEIVE_DESCRIPTOR_MINIMUM_THRESHOLD,
+    INTERRUPT_CAUSE_RECEIVE_OVERRUN, INTERRUPT_CAUSE_RECEIVE_SEQUENCE_ERROR,
+    INTERRUPT_CAUSE_RECEIVE_TIMER, INTERRUPT_CAUSE_TRANSMIT_DESCRIPTOR_WRITTEN_BACK,
+    INTERRUPT_CAUSE_TRANSMIT_QUEUE_EMPTY, RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE,
+    RECEIVE_MAC_ADDRESS_HIGH_VALID, receive_control_register_value,
+    station_mac_address_from_receive_words, transmit_control_register_value,
+    transmit_inter_packet_gap_register_value,
 };
 pub use data_plane::{DataPlane, DirectMemoryAccessRegion, Tails, TransmitError};
 use descriptor::*;
