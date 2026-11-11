@@ -25,10 +25,11 @@ pub const TRANSMIT_ENTRIES: u16 = 16;
 /// Bytes per buffer, matching `RCTL`'s size field of zero.
 pub const BUFFER_BYTES: u64 = 2048;
 
-/// The largest frame either direction carries, in bytes: 1500 bytes of payload and the 14-byte
-/// Ethernet header, no CRC (the device strips it on receive and appends it on transmit). This is
-/// not the maximum transmission unit, which is the 1500 bytes of payload alone.
-pub const MAXIMUM_FRAME_BYTES: usize = 1514;
+/// The largest frame either direction carries, in bytes: 1500 bytes of payload, the 14-byte
+/// Ethernet header and one 4-byte virtual local area network (VLAN) tag, no CRC (the device strips
+/// it on receive and appends it on transmit). This is not the maximum transmission unit, which is
+/// the 1500 bytes of payload alone.
+pub const MAXIMUM_FRAME_BYTES: usize = 1518;
 
 /// Receive status: descriptor done. OpenBSD's `E1000_RXD_STAT_DD` (`sys/dev/pci/if_em_hw.h`),
 /// which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same.
@@ -36,7 +37,7 @@ pub const MAXIMUM_FRAME_BYTES: usize = 1514;
 pub const RECEIVE_STATUS_DESCRIPTOR_DONE: u8 = 1 << 0;
 
 /// Receive status: end of packet. A frame without it spans buffers, which a 2048-byte buffer and
-/// a 1514-byte maximum never need, so such a frame is dropped rather than reassembled. OpenBSD's
+/// a 1518-byte maximum never need, so such a frame is dropped rather than reassembled. OpenBSD's
 /// `E1000_RXD_STAT_EOP` (`sys/dev/pci/if_em_hw.h`), spelled the same by FreeBSD and Linux.
 #[doc(alias = "E1000_RXD_STAT_EOP")]
 pub const RECEIVE_STATUS_END_OF_PACKET: u8 = 1 << 1;
@@ -90,9 +91,9 @@ pub enum ReceiveVerdict {
 ///
 /// let word = |len: u64, status: u8| len | (status as u64) << 32;
 /// let done = RECEIVE_STATUS_DESCRIPTOR_DONE | RECEIVE_STATUS_END_OF_PACKET;
-/// assert_eq!(receive_verdict(word(60, done), 1514), ReceiveVerdict::Frame(60));
-/// assert_eq!(receive_verdict(word(60, 0), 1514), ReceiveVerdict::NotYet);
-/// assert_eq!(receive_verdict(word(0xffff, done), 1514), ReceiveVerdict::Drop);
+/// assert_eq!(receive_verdict(word(60, done), 1518), ReceiveVerdict::Frame(60));
+/// assert_eq!(receive_verdict(word(60, 0), 1518), ReceiveVerdict::NotYet);
+/// assert_eq!(receive_verdict(word(0xffff, done), 1518), ReceiveVerdict::Drop);
 /// ```
 pub fn receive_verdict(word: u64, room: usize) -> ReceiveVerdict {
     let status = (word >> 32) as u8;

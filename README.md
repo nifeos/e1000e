@@ -29,9 +29,9 @@ assert_eq!(model_name(0x10d3), Some("82574L (QEMU's e1000e)"));
 
 let word = |len: u64, status: u8| len | (status as u64) << 32;
 let done = RECEIVE_STATUS_DESCRIPTOR_DONE | RECEIVE_STATUS_END_OF_PACKET;
-assert_eq!(receive_verdict(word(60, done), 1514), ReceiveVerdict::Frame(60));
-assert_eq!(receive_verdict(word(60, 0), 1514), ReceiveVerdict::NotYet);
-assert_eq!(receive_verdict(word(0xffff, done), 1514), ReceiveVerdict::Drop);
+assert_eq!(receive_verdict(word(60, done), 1518), ReceiveVerdict::Frame(60));
+assert_eq!(receive_verdict(word(60, 0), 1518), ReceiveVerdict::NotYet);
+assert_eq!(receive_verdict(word(0xffff, done), 1518), ReceiveVerdict::Drop);
 ```
 
 For the rings, implement `DirectMemoryAccessRegion` over the DMA memory and `Tails` over the queue registers, then
@@ -113,12 +113,14 @@ then was 46cf612d (2026-08-30). The author copied the notice of `if_em.c` and `i
 ## BUGS
 
 - One receive and one transmit queue, polled. No interrupts, checksum offload, segmentation offload
-  or jumbo frames. `registers` carries the interrupt cause and mask-clear registers and no cause
-  bits, so an interrupt-driven driver takes them from its own source.
+  or jumbo frames. `registers` carries the interrupt cause, throttling, mask-set and mask-clear
+  registers, and the crate names the common cause bits, but no code here enables or handles an
+  interrupt.
 - Each ring has 16 descriptors (`RECEIVE_ENTRIES`, `TRANSMIT_ENTRIES`), fixed by constants that
   shape the region's layout and the proofs. A later version may change that.
-- The largest frame is 1514 bytes (`MAXIMUM_FRAME_BYTES`), with no room for a virtual local area network (VLAN) tag: a tagged
-  full-size frame of 1518 bytes is dropped on receive and refused on transmit.
+- The largest frame is 1518 bytes (`MAXIMUM_FRAME_BYTES`): 1500 bytes of payload, the Ethernet
+  header and one virtual local area network (VLAN) tag. A frame with two tags is dropped on receive
+  and refused on transmit.
 - The test doubles are private to the crate's tests. `examples/host_ring.rs` is the fake to start
   from.
 - The crate claims only the 82574L and the Sunrise Point I219 rows of `DEVICE_IDS`. Later platform

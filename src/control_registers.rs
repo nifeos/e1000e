@@ -36,6 +36,35 @@ pub const RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE: u32 = 1 << 15;
 #[doc(alias = "E1000_RAH_AV")]
 pub const RECEIVE_MAC_ADDRESS_HIGH_VALID: u32 = 1 << 31;
 
+/// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): transmit descriptor written back. OpenBSD's `E1000_ICR_TXDW` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
+#[doc(alias = "ICR_TXDW")]
+#[doc(alias = "E1000_ICR_TXDW")]
+pub const INTERRUPT_CAUSE_TRANSMIT_DESCRIPTOR_WRITTEN_BACK: u32 = 1 << 0;
+/// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): transmit queue empty. OpenBSD's `E1000_ICR_TXQE` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
+#[doc(alias = "ICR_TXQE")]
+#[doc(alias = "E1000_ICR_TXQE")]
+pub const INTERRUPT_CAUSE_TRANSMIT_QUEUE_EMPTY: u32 = 1 << 1;
+/// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): link status change. OpenBSD's `E1000_ICR_LSC` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
+#[doc(alias = "ICR_LSC")]
+#[doc(alias = "E1000_ICR_LSC")]
+pub const INTERRUPT_CAUSE_LINK_STATUS_CHANGE: u32 = 1 << 2;
+/// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): receive sequence error. OpenBSD's `E1000_ICR_RXSEQ` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
+#[doc(alias = "ICR_RXSEQ")]
+#[doc(alias = "E1000_ICR_RXSEQ")]
+pub const INTERRUPT_CAUSE_RECEIVE_SEQUENCE_ERROR: u32 = 1 << 3;
+/// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): receive descriptor minimum threshold reached. OpenBSD's `E1000_ICR_RXDMT0` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
+#[doc(alias = "ICR_RXDMT0")]
+#[doc(alias = "E1000_ICR_RXDMT0")]
+pub const INTERRUPT_CAUSE_RECEIVE_DESCRIPTOR_MINIMUM_THRESHOLD: u32 = 1 << 4;
+/// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): receive overrun. OpenBSD's `E1000_ICR_RXO` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
+#[doc(alias = "ICR_RXO")]
+#[doc(alias = "E1000_ICR_RXO")]
+pub const INTERRUPT_CAUSE_RECEIVE_OVERRUN: u32 = 1 << 6;
+/// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): receive timer expired. OpenBSD's `E1000_ICR_RXT0` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
+#[doc(alias = "ICR_RXT0")]
+#[doc(alias = "E1000_ICR_RXT0")]
+pub const INTERRUPT_CAUSE_RECEIVE_TIMER: u32 = 1 << 7;
+
 /// `RCTL`: receive enable (Linux's `regs.h`).
 pub(crate) const RECEIVE_CONTROL_ENABLE: u32 = 1 << 1;
 

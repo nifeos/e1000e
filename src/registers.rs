@@ -21,6 +21,19 @@ pub const EXTENDED_DEVICE_CONTROL_REGISTER: u64 = 0x0_0018;
 #[doc(alias = "E1000_ICR")]
 #[doc(alias = "ICR")]
 pub const INTERRUPT_CAUSE_READ_REGISTER: u64 = 0x0_00c0;
+/// **Interrupt Throttling** (OpenBSD's `E1000_ITR`, `sys/dev/pci/if_em_hw.h`). The minimum interval
+/// between interrupts, in 256-nanosecond units. Provisional name.
+#[doc(alias = "interrupt throttling")]
+#[doc(alias = "E1000_ITR")]
+#[doc(alias = "ITR")]
+pub const INTERRUPT_THROTTLING_REGISTER: u64 = 0x0_00c4;
+/// **Interrupt Mask Set and Read** (OpenBSD's `E1000_IMS`, `sys/dev/pci/if_em_hw.h`). Writing a one
+/// enables that cause; the bits are [`super::INTERRUPT_CAUSE_TRANSMIT_DESCRIPTOR_WRITTEN_BACK`] and
+/// its neighbors. Provisional name.
+#[doc(alias = "interrupt mask set")]
+#[doc(alias = "E1000_IMS")]
+#[doc(alias = "IMS")]
+pub const INTERRUPT_SET_MASK_REGISTER: u64 = 0x0_00d0;
 /// **Interrupt Mask Clear** (OpenBSD's `E1000_IMC`, `sys/dev/pci/if_em_hw.h`). Write only.
 #[doc(alias = "interrupt mask clear")]
 #[doc(alias = "E1000_IMC")]
