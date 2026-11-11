@@ -114,8 +114,8 @@ then was 46cf612d (2026-08-30). The author copied the notice of `if_em.c` and `i
 - The crate does not port the I219's link-up half, so it does not reconfigure the PHY when link
   comes up. A link that comes up and then loses frames points there first. The crate does not
   configure flow control.
-- The I219 port has run on real hardware once, with no cable. Otherwise only the simulator, which
-  is this crate's reading of FreeBSD, checks it.
+- No version of this crate has run on an I219. Only the simulator, which is this crate's reading of
+  FreeBSD, checks the port.
 - Legacy descriptors on the I219 are an assumption from the 8254x lineage.
 
 ## Minimum Rust version
