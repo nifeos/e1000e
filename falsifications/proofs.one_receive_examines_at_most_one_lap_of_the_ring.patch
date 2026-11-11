@@ -6,18 +6,19 @@ reads as not yet written or a frame is delivered, however many laps of the ring 
 Expected to fail: the harness's `assert!` on the count of status words read, at the seventeenth read.
 
 diff --git a/src/data_plane.rs b/src/data_plane.rs
+index 9a7c183..c3c4a31 100644
 --- a/src/data_plane.rs
 +++ b/src/data_plane.rs
-@@ -120,7 +120,7 @@ impl DataPlane {
+@@ -154,7 +154,7 @@ impl DataPlane {
          tails: &mut impl Tails,
          out: &mut [u8],
      ) -> Option<usize> {
 -        for _ in 0..RECEIVE_ENTRIES {
 +        loop {
              let descriptor_offset = layout::receive_descriptor(self.receive_next);
-             let verdict = receive_verdict(region.read_u64(descriptor_offset + 8), out.len());
-             if verdict == ReceiveVerdict::NotYet {
-@@ -153,7 +153,6 @@ impl DataPlane {
+             let word = region.read_u64(descriptor_offset + 8);
+             let verdict = receive_verdict(word, out.len());
+@@ -194,7 +194,6 @@ impl DataPlane {
                  return got;
              }
          }

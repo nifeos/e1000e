@@ -39,7 +39,7 @@ pub const RECEIVE_MAC_ADDRESS_HIGH_VALID: u32 = 1 << 31;
 /// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): transmit descriptor written back. OpenBSD's `E1000_ICR_TXDW` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
 #[doc(alias = "ICR_TXDW")]
 #[doc(alias = "E1000_ICR_TXDW")]
-pub const INTERRUPT_CAUSE_TRANSMIT_DESCRIPTOR_WRITTEN_BACK: u32 = 1 << 0;
+pub const INTERRUPT_CAUSE_TRANSMIT_DESCRIPTOR_WRITTEN_BACK: u32 = 1;
 /// Interrupt cause (`ICR`, and the same bit in `IMS` and `IMC`): transmit queue empty. OpenBSD's `E1000_ICR_TXQE` (`sys/dev/pci/if_em_hw.h`), which FreeBSD's `sys/dev/e1000/e1000_defines.h` and Linux spell the same. Provisional name.
 #[doc(alias = "ICR_TXQE")]
 #[doc(alias = "E1000_ICR_TXQE")]
