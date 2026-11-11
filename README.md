@@ -80,8 +80,8 @@ These Kani harnesses cover the input a device or a caller controls.
 The proofs need Kani, which `rustup` does not install. Run `cargo install --locked
 kani-verifier --version 0.68.0`, then `cargo kani setup`. The setup step downloads a model
 checker, so it needs network access. CI uses version 0.68.0, and another version may verify
-differently. Setup also downloads the Kani release's pinned nightly Rust toolchain and a CBMC
-bundle. A full `cargo kani` run takes about nine minutes on a desktop machine. It prints an
+differently. Setup also downloads the Kani release's pinned nightly Rust toolchain and a C Bounded
+Model Checker (CBMC) bundle. A full `cargo kani` run takes about nine minutes on a desktop machine. It prints an
 unstable-feature warning and an "unsupported constructs" note about code the proofs never reach, and
 it still succeeds.
 
