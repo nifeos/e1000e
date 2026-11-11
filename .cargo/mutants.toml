@@ -1,7 +1,7 @@
 # cargo-mutants reads this file. The Kani harnesses are compiled only under `cfg(kani)`, so no host
 # test can reach them, and a mutant inside one is a mutant nothing runs: `cargo kani` and the
-# falsification patches are what check the harnesses. `src/proofs.rs` and `src/ring_proofs.rs`
+# falsification patches are what check the harnesses. `src/proofs.rs`, `src/ring_proofs.rs` and `src/receive_proofs.rs`
 # hold harnesses only; the expression matches the inline `proofs` modules of
 # `physical_layer_device` and `non_volatile_memory`.
-exclude_globs = ["src/proofs.rs", "src/ring_proofs.rs"]
+exclude_globs = ["src/proofs.rs", "src/ring_proofs.rs", "src/receive_proofs.rs"]
 exclude_re = ["proofs::"]
