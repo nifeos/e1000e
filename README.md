@@ -74,8 +74,8 @@ These Kani harnesses cover the input a device or a caller controls.
   completes descriptors in order, `transmit` never writes a descriptor or buffer the device holds,
   and it reports `Full` only when every other slot is the device's.
 - `platform_controller_hub::non_volatile_memory::proofs::a_word_read_stays_in_range_for_every_strap`:
-  for every strap value and every word, a read past the shadow RAM is refused before any register
-  is written, and every other read lands inside the bank the signature chose.
+  for every strap value and every word, a read past the shadow RAM fails before it touches any
+  register, and every other read lands inside the bank the signature chose.
 
 The proofs need Kani, which `rustup` does not install. Run `cargo install --locked
 kani-verifier --version 0.68.0`, then `cargo kani setup`. The setup step downloads a model
