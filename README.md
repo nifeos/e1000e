@@ -10,12 +10,19 @@ e1000e` presents and the Sunrise Point I219, with no register access of its own.
 register offsets and bits, the descriptor formats and the direct memory access (DMA) region's
 layout. It also holds the whole receive and transmit ring logic behind two small traits
 (`DirectMemoryAccessRegion` and `Tails`), and the I219 bring-up sequences ported from FreeBSD's
-Intel shared code and its `if_em.c` driver. You supply the volatile register accesses and the DMA memory; everything computed from them
-is here, `no_std`, and tested on the host against a simulated device.
+Intel shared code and its `if_em.c` driver. You supply the volatile register accesses and the DMA
+memory; everything computed from them is here, `no_std`, and tested on the host against a simulated
+device.
 
-## EXAMPLES
+## Getting started
+
+`cargo build` and `cargo test` need no setup beyond a Rust toolchain at the minimum version below.
+The Kani proofs under "What is proven" are the only part that needs extra tools.
+
+## Examples
 
 Claim a device, then judge each receive descriptor's status word before trusting its length.
+This example is a doctest, so `cargo test` runs it.
 
 ```rust
 use e1000e::{
@@ -34,9 +41,10 @@ assert_eq!(receive_verdict(word(60, 0), 1518), ReceiveVerdict::NotYet);
 assert_eq!(receive_verdict(word(0xffff, done), 1518), ReceiveVerdict::Drop);
 ```
 
-For the rings, implement `DirectMemoryAccessRegion` over the DMA memory and `Tails` over the queue registers, then
-drive a `DataPlane` with `start`, `receive` and `transmit`. Each trait's documentation states the
-contract an implementation keeps: every access volatile, and the barrier each architecture needs.
+For the rings, implement `DirectMemoryAccessRegion` over the DMA memory and `Tails` over the queue
+registers, then drive a `DataPlane` with `start`, `receive` and `transmit`. Each trait's
+documentation states the contract an implementation keeps: every access volatile, and the barrier
+each architecture needs.
 [`examples/host_ring.rs`](examples/host_ring.rs) drives both rings against a fake device
 (`cargo run --example host_ring`), and [`docs/bring-up.md`](docs/bring-up.md) gives the register
 order a driver performs before `start`. [`docs/qemu.md`](docs/qemu.md) runs the same data plane
@@ -60,18 +68,22 @@ These Kani harnesses cover the input a device or a caller controls.
   `receive` then reads frame bytes at most once. It reads only the buffer of the descriptor it
   consumed, only as many bytes as the frame it returns, and never more than the caller's room. It
   leaves the cursor on the descriptor after the last one consumed.
-- `proofs::one_receive_examines_at_most_one_lap_of_the_ring`: the receive lap limit.
-- `ring_proofs::the_transmit_ring_never_writes_what_the_device_holds`: the transmit ring against a
-  device that completes descriptors in order.
+- `proofs::one_receive_examines_at_most_one_lap_of_the_ring`: whatever the device writes, one
+  `receive` reads at most one status word per descriptor in the ring, so it always returns.
+- `ring_proofs::the_transmit_ring_never_writes_what_the_device_holds`: against a device that
+  completes descriptors in order, `transmit` never writes a descriptor or buffer the device holds,
+  and it reports `Full` only when every other slot is the device's.
 - `platform_controller_hub::non_volatile_memory::proofs::a_word_read_stays_in_range_for_every_strap`:
-  the non-volatile memory word read.
+  for every strap value and every word, a read past the shadow RAM is refused before any register
+  is written, and every other read lands inside the bank the signature chose.
 
 The proofs need Kani, which `rustup` does not install. Run `cargo install --locked
 kani-verifier --version 0.68.0`, then `cargo kani setup`. The setup step downloads a model
 checker, so it needs network access. CI uses version 0.68.0, and another version may verify
-differently. A full `cargo kani` run takes about nine minutes; setup also downloads a pinned
-nightly toolchain, and a successful run still prints an unstable-feature warning and a note about
-unsupported constructs that the proofs never reach.
+differently. Setup also downloads the Kani release's pinned nightly Rust toolchain and a CBMC
+bundle. A full `cargo kani` run takes about nine minutes on a desktop machine. It prints an
+unstable-feature warning and an "unsupported constructs" note about code the proofs never reach, and
+it still succeeds.
 
 Rerun them with `cargo kani`, or one of them with `cargo kani --harness <name>`. Each harness has
 a falsification record at `falsifications/<module.path>.<harness>.patch`. Applying it with
@@ -98,9 +110,9 @@ them. QEMU uses legacy descriptors unless software sets `RFCTL.EXTEN`, and it re
 The author did not read Intel's own I219 datasheet. Where the I219 likely differs from the 82574L,
 the item says so.
 
-The I219 needs a port rather than a reading of registers. It is a media access control (MAC) block inside the platform
-controller hub, talking to a separate PHY that it shares with the Management Engine, and it
-carries workarounds that only field exposure finds. For `platform_controller_hub`, the author read
+The I219 needs a port rather than a reading of registers. It is a media access control (MAC) block
+inside the platform controller hub, talking to a separate PHY that it shares with the Management Engine,
+and it carries workarounds that only field exposure finds. For `platform_controller_hub`, the author read
 only FreeBSD's Intel shared code (BSD-3-Clause) and its `if_em.c` and `if_em.h` (BSD-2-Clause).
 The author did not consult Linux's `e1000e`, which is GPL, for any of it. Each item in
 `platform_controller_hub` names the FreeBSD function it follows.
@@ -145,5 +157,5 @@ notice ([LICENSE-BSD-3-Clause-Intel](LICENSE-BSD-3-Clause-Intel)) and the BSD-2-
 `if_em.c` and `if_em.h` (Intel, Nicole Graziano, Kevin Bowling;
 [LICENSE-BSD-2-Clause-FreeBSD](LICENSE-BSD-2-Clause-FreeBSD)). A binary redistribution must
 reproduce both notices. Their
-SPDX expression is `BSD-2-Clause AND BSD-3-Clause`.
-The manifest's `license` field names all three: `(MIT OR Apache-2.0) AND BSD-3-Clause AND BSD-2-Clause`.
+SPDX expression is `BSD-2-Clause AND BSD-3-Clause`. The manifest's `license` field names all three:
+`(MIT OR Apache-2.0) AND BSD-3-Clause AND BSD-2-Clause`.
