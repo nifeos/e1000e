@@ -68,7 +68,9 @@ These Kani harnesses cover the input a device or a caller controls:
 The proofs need Kani, which `rustup` does not install. Run `cargo install --locked
 kani-verifier --version 0.68.0`, then `cargo kani setup`. The setup step downloads a model
 checker, so it needs network access. CI uses version 0.68.0, and another version may verify
-differently.
+differently. A full `cargo kani` run takes about nine minutes; setup also downloads a pinned
+nightly toolchain, and a successful run still prints an unstable-feature warning and a note about
+unsupported constructs that the proofs never reach.
 
 Rerun them with `cargo kani`, or one of them with `cargo kani --harness <name>`. Each harness has
 a falsification record at `falsifications/<module.path>.<harness>.patch`. Applying it with
