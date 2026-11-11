@@ -66,4 +66,6 @@ pub use supported_devices::{DEVICE_IDS, VENDOR_INTEL, is_supported_device, model
 #[cfg(kani)]
 mod proofs;
 #[cfg(kani)]
+mod receive_proofs;
+#[cfg(kani)]
 mod ring_proofs;

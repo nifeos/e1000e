@@ -1,0 +1,22 @@
+Falsifies `e1000e::receive_proofs::a_receive_reads_only_its_own_slot_and_no_more_than_the_caller_has_room_for`.
+
+The defect: the receive path reads the frame from the buffer of the descriptor after the one it
+consumed, so the caller gets another descriptor's bytes and the descriptor it consumed keeps its
+frame unread.
+
+Expected to fail: the harness's `assert!(offset == layout::receive_buffer(slot))` in
+`read_bytes`, at the first delivered frame.
+
+diff --git a/src/data_plane.rs b/src/data_plane.rs
+index 123e2f8..25d7218 100644
+--- a/src/data_plane.rs
++++ b/src/data_plane.rs
+@@ -158,7 +158,7 @@ impl DataPlane {
+             tails.barrier();
+             let got = match verdict {
+                 ReceiveVerdict::Frame(n) => {
+-                    region.read_bytes(layout::receive_buffer(self.receive_next), &mut out[..n]);
++                    region.read_bytes(layout::receive_buffer(self.receive_next + 1), &mut out[..n]);
+                     Some(n)
+                 }
+                 _ => {
