@@ -15,23 +15,22 @@ What a run is:
 
 ## Open findings
 
-- The README did not say that the full `cargo kani` run takes about nine minutes, that setup
-  downloads a pinned nightly toolchain as well as the model checker, or that Kani prints an
-  unstable-feature warning and an unsupported-constructs note on a run that succeeds. The README's
-  proofs section now says so.
+- The README did not say that the full `cargo kani` run takes about nine minutes. It did not say
+  that setup downloads a pinned nightly toolchain as well as the model checker. It did not say that
+  Kani prints an unstable-feature warning and an unsupported-constructs note on a run that
+  succeeds. The README's proofs section now says all three.
 - The ring paragraph is prose with no code beside it; the example and `docs/bring-up.md` carry the
   detail, and the cold runner found both from the README. The runner did not open `docs/bring-up.md`
-  or `docs/qemu.md`, so those two are unchecked by a cold reader.
+  or `docs/qemu.md`, so a cold reader has not yet checked those two.
 - The runner did not replay a falsification patch or the QEMU smoke test.
 
 ## Cold run on 2026-11-11
 
-A fresh agent with no source context was given only the repository URL and the steps above, and
-started with a clean clone of `ef01cef` (`0.1.0-pre.1`). The Kani install was exercised, into an
-empty tool home: `cargo install --locked kani-verifier --version 0.68.0` and `cargo kani setup`
-both passed. `cargo build` (0.5 s), `cargo test` (76 unit tests and 2 doctests), `cargo run
---example host_ring` and `cargo kani` (all six harnesses, about 551 s) all passed from the README
-alone. The previous run's findings about the Kani install path and the missing ring example are
-closed by this run.
+A fresh agent with no source context took only the repository URL and the steps above, and
+started from a clean clone of `ef01cef` (`0.1.0-pre.1`). It ran the Kani install into an empty tool
+home: `cargo install --locked kani-verifier --version 0.68.0` and `cargo kani setup` both passed.
+`cargo build` (0.5 s), `cargo test` (76 unit tests and 2 doctests), `cargo run --example host_ring`
+and `cargo kani` (all six harnesses, about 551 s) all passed from the README alone. This run closes
+the previous run's findings about the Kani install path and the missing ring example.
 
 Last run: 2026-11-11
