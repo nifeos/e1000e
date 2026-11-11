@@ -19,7 +19,7 @@ device.
 `cargo build` and `cargo test` need no setup beyond a Rust toolchain at the minimum version below.
 The Kani proofs under "What is proven" are the only part that needs extra tools.
 
-## Examples
+## EXAMPLES
 
 Claim a device, then judge each receive descriptor's status word before trusting its length.
 This example is a doctest, so `cargo test` runs it.
