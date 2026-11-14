@@ -5,8 +5,12 @@ sentence beside it.
 
 ## 0.1.0-pre.2
 
-- A frame may carry a virtual local area network (VLAN) tag: `MAXIMUM_FRAME_BYTES` is 1518. The receive statistics count the
-  frames dropped for the caller's room (`dropped_for_lack_of_room`).
+- Breaking rename: the management data input output names spell it `io`. The two transaction bits
+  are `MANAGEMENT_DATA_IO_TRANSACTION_READY` and `MANAGEMENT_DATA_IO_TRANSACTION_ERROR`, and the
+  two accessors are `read_management_data_io` and `write_management_data_io`. The old spellings
+  have no alias.
+- A frame may carry a virtual local area network (VLAN) tag, so `MAXIMUM_FRAME_BYTES` is 1518. The
+  receive statistics count the frames dropped for the caller's room (`dropped_for_lack_of_room`).
 - The interrupt vocabulary is named: the `INTERRUPT_CAUSE_*` bits, `INTERRUPT_THROTTLING_REGISTER`
   and `INTERRUPT_SET_MASK_REGISTER`, each with its specification mnemonic as a search alias.
 - The receive cursor has a proof: one read, from the consumed slot, within the caller's room.
