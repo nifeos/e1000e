@@ -76,12 +76,12 @@ fn the_flush_and_management_bits_are_the_numbers_the_sources_write() {
     );
     use physical_layer_device::management_data_interface_control as mdic;
     assert_eq!(
-        mdic::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY,
+        mdic::MANAGEMENT_DATA_IO_TRANSACTION_READY,
         0x1000_0000,
         "E1000_MDIC_READY"
     );
     assert_eq!(
-        mdic::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_ERROR,
+        mdic::MANAGEMENT_DATA_IO_TRANSACTION_ERROR,
         0x4000_0000,
         "E1000_MDIC_ERROR"
     );

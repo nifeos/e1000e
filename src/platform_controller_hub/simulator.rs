@@ -155,8 +155,8 @@ impl SimulatedHardware {
             self.mac.insert(
                 mac_mdic(),
                 value
-                    | management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY
-                    | management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_ERROR,
+                    | management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY
+                    | management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_ERROR,
             );
             return;
         }
@@ -191,7 +191,7 @@ impl SimulatedHardware {
             }
             self.mac.insert(
                 mac_mdic(),
-                value | management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY,
+                value | management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY,
             );
         } else {
             let data = offset.map_or(0, |o| {
@@ -201,7 +201,7 @@ impl SimulatedHardware {
                 mac_mdic(),
                 (value & !0xffff)
                     | u32::from(data)
-                    | management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY,
+                    | management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY,
             );
         }
     }
@@ -450,11 +450,11 @@ mod tests {
     fn mdic_failures_are_told_apart() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Dead, true);
         assert_eq!(
-            physical_layer_device::read_management_data_input_output(&mut s, 2, 2),
+            physical_layer_device::read_management_data_io(&mut s, 2, 2),
             Err(PhysicalLayerDeviceError::ManagementDataInterface)
         );
         assert_eq!(
-            physical_layer_device::read_management_data_input_output(&mut s, 2, 32),
+            physical_layer_device::read_management_data_io(&mut s, 2, 32),
             Err(PhysicalLayerDeviceError::OutOfRange)
         );
         // A device that never raises READY: the poll gives up after FreeBSD's 96 ms.
@@ -477,7 +477,7 @@ mod tests {
         }
         let mut m = Mute(0);
         assert_eq!(
-            physical_layer_device::read_management_data_input_output(&mut m, 1, 2),
+            physical_layer_device::read_management_data_io(&mut m, 1, 2),
             Err(PhysicalLayerDeviceError::NotReady)
         );
         assert_eq!(
@@ -495,7 +495,7 @@ mod tests {
     fn the_last_register_and_the_last_page_are_reachable_and_one_past_is_not() {
         let mut s = SimulatedHardware::new(PhysicalLayerDeviceStartState::Healthy, true);
         assert!(
-            physical_layer_device::read_management_data_input_output(
+            physical_layer_device::read_management_data_io(
                 &mut s,
                 2,
                 physical_layer_device::MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER
