@@ -1761,7 +1761,7 @@ mod tests {
         let memory = Error::NonVolatileMemory(non_volatile_memory::Error::NoValidBank);
         assert_eq!(
             physical.to_string(),
-            "physical layer device access failed: nothing answered on the management data input output bus"
+            "physical layer device access failed: nothing answered on the management data io bus"
         );
         assert_eq!(
             memory.to_string(),
@@ -1769,7 +1769,7 @@ mod tests {
         );
         assert_eq!(
             physical.source().map(ToString::to_string).as_deref(),
-            Some("nothing answered on the management data input output bus")
+            Some("nothing answered on the management data io bus")
         );
         assert_eq!(
             memory.source().map(ToString::to_string).as_deref(),

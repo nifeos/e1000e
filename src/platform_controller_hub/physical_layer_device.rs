@@ -1,6 +1,6 @@
-//! **Reaching the PHY: management data input output (MDIO) through `MDIC`, under the software/firmware semaphore.**
+//! **Reaching the PHY: management data io (MDIO) through `MDIC`, under the software/firmware semaphore.**
 //!
-//! [`read_management_data_input_output`] and [`write_management_data_input_output`] are the MDIO primitive the 82574L shares. Of the rest, only
+//! [`read_management_data_io`] and [`write_management_data_io`] are the MDIO primitive the 82574L shares. Of the rest, only
 //! [`read_identifier_at_device_number`] applies to an 82574L, which has no pages and no semaphore. [`read()`] and [`write()`]
 //! are the paged access every PCH PHY register above page 0 needs, and each takes a [`SoftwareFlag`],
 //! which only [`SoftwareFlag::acquire`] makes. That type stands where FreeBSD writes "Assumes
@@ -77,7 +77,7 @@ pub enum Error {
 impl core::fmt::Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(match self {
-            Error::NotReady => "nothing answered on the management data input output bus",
+            Error::NotReady => "nothing answered on the management data io bus",
             Error::ManagementDataInterface => {
                 "the management data interface refused the transaction"
             }
@@ -105,16 +105,16 @@ pub mod management_data_interface_control {
     pub(crate) const OPERATION_READ: u32 = 0x0800_0000;
     /// Write opcode.
     pub(crate) const OPERATION_WRITE: u32 = 0x0400_0000;
-    /// **Management data input/output transaction ready** (`E1000_MDIC_READY`, OpenBSD's
+    /// **Management data io transaction ready** (`E1000_MDIC_READY`, OpenBSD's
     /// `sys/dev/pci/if_em_hw.h` and FreeBSD's `e1000_defines.h`, both `0x10000000`). The transaction
     /// completed.
     #[doc(alias = "E1000_MDIC_READY")]
-    pub const MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY: u32 = 1 << 28;
-    /// **Management data input/output transaction error** (`E1000_MDIC_ERROR`, OpenBSD's
+    pub const MANAGEMENT_DATA_IO_TRANSACTION_READY: u32 = 1 << 28;
+    /// **Management data io transaction error** (`E1000_MDIC_ERROR`, OpenBSD's
     /// `sys/dev/pci/if_em_hw.h` and FreeBSD's `e1000_defines.h`, both `0x40000000`). The transaction
     /// failed.
     #[doc(alias = "E1000_MDIC_ERROR")]
-    pub const MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_ERROR: u32 = 1 << 30;
+    pub const MANAGEMENT_DATA_IO_TRANSACTION_ERROR: u32 = 1 << 30;
     /// Polls before giving up: `E1000_GEN_POLL_TIMEOUT * 3`.
     pub(crate) const MAXIMUM_POLLS: u32 = 640 * 3;
     /// Between polls, in microseconds.
@@ -262,7 +262,7 @@ pub(crate) const ICH_FWSM_RSPCIPHY: u32 = 0x0000_0040;
 /// input/output control register).
 #[doc(alias = "mdic")]
 #[doc(alias = "e1000_read_phy_reg_mdic")]
-pub fn read_management_data_input_output(
+pub fn read_management_data_io(
     hardware: &mut impl Hardware,
     physical_layer_device_number: u32,
     register: u32,
@@ -281,10 +281,10 @@ pub fn read_management_data_input_output(
 }
 
 /// One MDIO write, `e1000_write_phy_reg_mdic`. It goes through the `MDIC` register (the
-/// management data input/output control register).
+/// management data io control register).
 #[doc(alias = "mdic")]
 #[doc(alias = "e1000_write_phy_reg_mdic")]
-pub fn write_management_data_input_output(
+pub fn write_management_data_io(
     hardware: &mut impl Hardware,
     physical_layer_device_number: u32,
     register: u32,
@@ -310,17 +310,13 @@ fn complete(hardware: &mut impl Hardware, register: u32) -> Result<u32, Error> {
     for _ in 0..management_data_interface_control::MAXIMUM_POLLS {
         hardware.delay_microseconds(management_data_interface_control::POLL_MICROSECONDS);
         v = hardware.read(super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER);
-        if v & management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY
-            != 0
-        {
+        if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY != 0 {
             break;
         }
     }
-    if v & management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_READY == 0 {
+    if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY == 0 {
         Err(Error::NotReady)
-    } else if v & management_data_interface_control::MANAGEMENT_DATA_INPUT_OUTPUT_TRANSACTION_ERROR
-        != 0
-    {
+    } else if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_ERROR != 0 {
         Err(Error::ManagementDataInterface)
     } else if (v & management_data_interface_control::REGISTER_MASK)
         >> management_data_interface_control::REGISTER_SHIFT
@@ -451,14 +447,14 @@ pub const fn plan_paged_access(offset: u32) -> Result<PagedAccessPlan, Error> {
 pub fn read(hardware: &mut impl Hardware, _held: &SoftwareFlag, offset: u32) -> Result<u16, Error> {
     let p = plan_paged_access(offset)?;
     if let Some(sel) = p.select {
-        write_management_data_input_output(
+        write_management_data_io(
             hardware,
             1,
             IGP01E1000_PHYSICAL_LAYER_DEVICE_PAGE_SELECT,
             sel,
         )?;
     }
-    read_management_data_input_output(hardware, p.physical_layer_device_number, p.register)
+    read_management_data_io(hardware, p.physical_layer_device_number, p.register)
 }
 
 /// Write a PCH PHY register by its paged offset. FreeBSD's 82578 power-down workaround in the
@@ -471,14 +467,14 @@ pub fn write(
 ) -> Result<(), Error> {
     let p = plan_paged_access(offset)?;
     if let Some(sel) = p.select {
-        write_management_data_input_output(
+        write_management_data_io(
             hardware,
             1,
             IGP01E1000_PHYSICAL_LAYER_DEVICE_PAGE_SELECT,
             sel,
         )?;
     }
-    write_management_data_input_output(hardware, p.physical_layer_device_number, p.register, data)
+    write_management_data_io(hardware, p.physical_layer_device_number, p.register, data)
 }
 
 /// Read-modify-write under a held flag.
@@ -518,12 +514,12 @@ pub fn read_identifier_at_device_number(
     hardware: &mut impl Hardware,
     physical_layer_device_number: u32,
 ) -> Result<u32, Error> {
-    let high = read_management_data_input_output(
+    let high = read_management_data_io(
         hardware,
         physical_layer_device_number,
         registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER,
     )?;
-    let low = read_management_data_input_output(
+    let low = read_management_data_io(
         hardware,
         physical_layer_device_number,
         registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER,
