@@ -11,7 +11,7 @@ sentence beside it.
   have no alias.
 - A frame may carry a virtual local area network (VLAN) tag, so `MAXIMUM_FRAME_BYTES` is 1518. The
   receive statistics count the frames dropped for the caller's room (`dropped_for_lack_of_room`).
-- The interrupt vocabulary is named: the `INTERRUPT_CAUSE_*` bits, `INTERRUPT_THROTTLING_REGISTER`
+- The crate names the interrupt vocabulary: the `INTERRUPT_CAUSE_*` bits, `INTERRUPT_THROTTLING_REGISTER`
   and `INTERRUPT_SET_MASK_REGISTER`, each with its specification mnemonic as a search alias.
 - The receive cursor has a proof: one read, from the consumed slot, within the caller's room.
 
