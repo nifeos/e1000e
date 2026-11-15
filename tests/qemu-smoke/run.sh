@@ -7,7 +7,7 @@ set -eu
 directory=$(cd "$(dirname "$0")" && pwd)
 seconds=${1:-60}
 cd "$directory"
-cargo build --release
+cargo build --release --locked
 image=target/x86_64-unknown-none/release/e1000e-qemu-smoke
 capture=target/e1000e-qemu-smoke.pcap
 rm -f "$capture"
