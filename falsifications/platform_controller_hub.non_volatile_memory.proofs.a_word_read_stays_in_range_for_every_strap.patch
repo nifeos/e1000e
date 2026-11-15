@@ -9,7 +9,7 @@ or more.
 diff --git a/src/platform_controller_hub/non_volatile_memory.rs b/src/platform_controller_hub/non_volatile_memory.rs
 --- a/src/platform_controller_hub/non_volatile_memory.rs
 +++ b/src/platform_controller_hub/non_volatile_memory.rs
-@@ -307,9 +307,6 @@
+@@ -308,9 +308,6 @@
      geometry: Geometry,
      word: u32,
  ) -> Result<u16, Error> {

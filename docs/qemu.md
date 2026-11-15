@@ -20,8 +20,9 @@ reply through `DataPlane::receive`. It is not part of CI: a person runs it by ha
 tests/qemu-smoke/run.sh
 ```
 
-The script builds the program in release mode and runs QEMU with a watchdog that kills the run
-after 60 seconds (the first argument changes that). It exits 0 on a pass and 1 otherwise. The
+The script builds the program in release mode against the committed `Cargo.lock` (`--locked`, so the
+build never rewrites it) and runs QEMU with a watchdog that kills the run after 60 seconds (the
+first argument changes that). It exits 0 on a pass and 1 otherwise. The
 QEMU command line it runs is:
 
 ```sh

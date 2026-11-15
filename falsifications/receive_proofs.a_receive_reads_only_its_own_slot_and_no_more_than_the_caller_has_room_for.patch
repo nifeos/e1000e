@@ -8,10 +8,9 @@ Expected to fail: the harness's `assert!(offset == layout::receive_buffer(slot))
 `read_bytes`, at the first delivered frame.
 
 diff --git a/src/data_plane.rs b/src/data_plane.rs
-index 123e2f8..25d7218 100644
 --- a/src/data_plane.rs
 +++ b/src/data_plane.rs
-@@ -158,7 +158,7 @@ impl DataPlane {
+@@ -166,7 +166,7 @@
              tails.barrier();
              let got = match verdict {
                  ReceiveVerdict::Frame(n) => {

@@ -10,7 +10,7 @@ frame.
 diff --git a/src/data_plane.rs b/src/data_plane.rs
 --- a/src/data_plane.rs
 +++ b/src/data_plane.rs
-@@ -177,9 +177,6 @@
+@@ -209,9 +209,6 @@
          }
          self.reclaim(region);
          let next = (self.transmit_next + 1) % TRANSMIT_ENTRIES;
