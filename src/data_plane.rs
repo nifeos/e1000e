@@ -28,15 +28,28 @@ pub trait DirectMemoryAccessRegion {
 /// The two tail registers, and the ordering between them and the region. The only register writes
 /// the data plane makes.
 ///
-/// Each tail write is one volatile 32-bit store to the queue's page of BAR0 (the device acts on
-/// every one, so none may be dropped or merged). [`Tails::barrier`] orders the region against the
-/// device on every architecture the crate builds for: on `x86_64` a compiler fence
-/// (`core::sync::atomic::compiler_fence`) is enough, since the processor keeps stores in order and
-/// loads in order; on `aarch64` it is `dmb osh` (Linux's `dma_wmb` and `dma_rmb` are its store and
-/// load halves, `dmb oshst` and `dmb oshld`); on `riscv64` it is `fence iorw, iorw` (Linux orders a
-/// store before a register write with `fence w, o` and two loads with `fence r, r`).
+/// Each tail write is one volatile 32-bit store to the queue's page of BAR0. The device acts on
+/// every transmit tail write, so none may be dropped or merged.
+///
+/// **A receive tail write may be held back.** Each value the data plane passes names the newest
+/// descriptor it has handed back, so a later value covers every earlier one: an implementation may
+/// keep only the newest and store it later, after a [`Tails::barrier`]. The descriptors it covers
+/// stay the driver's until that store, so the store must come before the caller waits for more
+/// frames, or the device runs out of descriptors and drops what arrives. Linux's e1000e driver
+/// does the same: `e1000_alloc_rx_buffers` writes `RDT` once per 16 buffers it refills. Under
+/// QEMU, one store per burst of 15 frames instead of one per frame drains the burst 15 to 19 times
+/// faster with the Kernel Virtual Machine (KVM) and 3 to 7 times faster without it;
+/// [`docs/qemu.md`](https://github.com/nifeos/e1000e/blob/main/docs/qemu.md) has the measurement.
+///
+/// [`Tails::barrier`] orders the region against the device on every architecture the crate builds
+/// for: on `x86_64` a compiler fence (`core::sync::atomic::compiler_fence`) is enough, since the
+/// processor keeps stores in order and loads in order; on `aarch64` it is `dmb osh` (Linux's
+/// `dma_wmb` and `dma_rmb` are its store and load halves, `dmb oshst` and `dmb oshld`); on
+/// `riscv64` it is `fence iorw, iorw` (Linux orders a store before a register write with
+/// `fence w, o` and two loads with `fence r, r`).
 pub trait Tails {
-    /// Write the receive tail (`RDT`), as one volatile 32-bit store.
+    /// Write the receive tail (`RDT`), as one volatile 32-bit store, now or held back to a later
+    /// store of a newer value.
     fn set_receive_tail(&mut self, value: u32);
     /// Write the transmit tail (`TDT`), as one volatile 32-bit store.
     fn set_transmit_tail(&mut self, value: u32);

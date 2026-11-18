@@ -22,7 +22,7 @@ pub fn say_mac_address(mac_address: [u8; 6]) {
 
 /// The 42-byte request: Ethernet header, then the ARP body for Ethernet and Internet Protocol
 /// version 4 (IPv4).
-fn request(station: [u8; 6]) -> [u8; 42] {
+pub fn request(station: [u8; 6]) -> [u8; 42] {
     let mut frame = [0; 42];
     frame[0..6].copy_from_slice(&[0xff; 6]);
     frame[6..12].copy_from_slice(&station);
