@@ -36,7 +36,7 @@ const QUEUE_LIMIT: usize = 64;
 /// The largest buffer the caller offers, a little over one receive buffer.
 const LARGEST_ROOM: usize = BUFFER_BYTES as usize + 16;
 /// Status-word lengths run from zero to a little past one receive buffer.
-const LENGTH_SPAN: u64 = BUFFER_BYTES + 64;
+const LENGTH_SPAN_BYTES: u64 = BUFFER_BYTES + 64;
 
 /// The receive status bits and error mask, written out here rather than imported, so the target
 /// judges a word independently of the crate.
@@ -77,9 +77,9 @@ fn judge(word: u64, room: usize) -> Judged {
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Event {
     StatusRead { slot: u16, word: u64 },
-    AddressWrite { slot: u16, value: u64 },
+    BufferPhysicalAddressWrite { slot: u16, value: u64 },
     StatusWrite { slot: u16, value: u64 },
-    BytesRead { slot: u16, length: usize },
+    BytesRead { slot: u16, length_bytes: usize },
     Tail(u16),
 }
 
@@ -127,9 +127,9 @@ impl Device {
         }
     }
 
-    fn write_descriptor(&self, slot: u16, address_word: u64, status_word: u64) {
+    fn write_descriptor(&self, slot: u16, buffer_physical_address: u64, status_word: u64) {
         let index = usize::from(slot);
-        self.words[index][0].set(address_word);
+        self.words[index][0].set(buffer_physical_address);
         self.words[index][1].set(status_word);
         self.frame_numbers[index].set(self.next_frame_number.get());
         self.next_frame_number
@@ -186,7 +186,7 @@ impl DirectMemoryAccessRegion for Region<'_> {
         }
         self.0.words[usize::from(slot)][half].set(value);
         self.0.log(if half == 0 {
-            Event::AddressWrite { slot, value }
+            Event::BufferPhysicalAddressWrite { slot, value }
         } else {
             Event::StatusWrite { slot, value }
         });
@@ -216,7 +216,7 @@ impl DirectMemoryAccessRegion for Region<'_> {
         }
         self.0.log(Event::BytesRead {
             slot,
-            length: out.len(),
+            length_bytes: out.len(),
         });
     }
 
@@ -285,7 +285,10 @@ fn check_receive(
         if let Judged::Deliver(length) = judged {
             assert_eq!(
                 events.next(),
-                Some(Event::BytesRead { slot, length }),
+                Some(Event::BytesRead {
+                    slot,
+                    length_bytes: length
+                }),
                 "the frame was not copied from its own buffer at its own length"
             );
             delivered = Some(length);
@@ -297,7 +300,7 @@ fn check_receive(
         }
         assert_eq!(
             events.next(),
-            Some(Event::AddressWrite {
+            Some(Event::BufferPhysicalAddressWrite {
                 slot,
                 value: PHYSICAL_ADDRESS + layout::receive_buffer(slot),
             }),
@@ -331,10 +334,10 @@ fn check_receive(
 }
 
 /// A status word from eight input bytes. Every field is the input's, but the length is reduced
-/// below [`LENGTH_SPAN`], so lengths near the frame and buffer limits come up often.
+/// below [`LENGTH_SPAN_BYTES`], so lengths near the frame and buffer limits come up often.
 fn status_word(bytes: [u8; 8]) -> u64 {
     let raw = u64::from_le_bytes(bytes);
-    (raw & !0xffff) | (raw & 0xffff) % LENGTH_SPAN
+    (raw & !0xffff) | (raw & 0xffff) % LENGTH_SPAN_BYTES
 }
 
 fn take<const N: usize>(rest: &mut &[u8]) -> Option<[u8; N]> {
@@ -452,8 +455,8 @@ fuzz_target!(|data: &[u8]| {
                     continue;
                 }
                 let slot = u16::from(slot) % ENTRIES;
-                let address_word = device.words[usize::from(slot)][0].get();
-                device.write_descriptor(slot, address_word, status_word(word));
+                let buffer_physical_address = device.words[usize::from(slot)][0].get();
+                device.write_descriptor(slot, buffer_physical_address, status_word(word));
             }
         }
     }

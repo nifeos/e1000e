@@ -58,19 +58,19 @@ These Kani harnesses cover the input a device or a caller controls.
 - `proofs::a_delivered_frame_always_fits_the_buffer_and_the_room`: for every status word a device
   can write and every caller buffer size, a frame that `receive_verdict` delivers fits both the
   receive buffer and the caller's space.
-- `proofs::a_written_descriptor_with_a_frame_error_is_dropped`: a descriptor the device has
-  written with any receive frame error bit set is dropped, whatever its length.
-- `proofs::a_written_descriptor_without_end_of_packet_is_dropped`: a descriptor the device has
-  written without end of packet is dropped, so a frame split across descriptors never reaches the
-  caller.
+- `proofs::a_written_descriptor_with_a_frame_error_is_dropped`: `receive_verdict` drops every
+  descriptor the device has written with a receive frame error bit set, whatever its length.
+- `proofs::a_written_descriptor_without_end_of_packet_is_dropped`: `receive_verdict` drops every
+  descriptor the device has written without end of packet, so a frame split across descriptors
+  never reaches the caller.
 - `proofs::every_ring_offset_is_inside_the_region`: for any index, every descriptor and buffer
   offset lies inside its part of the DMA region.
 - `platform_controller_hub::physical_layer_device::proofs::a_paged_access_selects_the_offsets_own_page_and_register`:
   every paged access to the physical (PHY) layer device names a PHY address that exists, the
   offset's own register and the offset's own page.
 - `platform_controller_hub::physical_layer_device::proofs::a_paged_access_refuses_every_page_this_port_does_not_carry`:
-  a paged access to page 1 through 767, to the host wakeup page 800 or to any page above 0x7ff
-  is refused before any register is planned.
+  the access plan refuses every offset on page 1 through 767, on the host wakeup page 800 or on
+  any page above 0x7ff.
 - `receive_proofs::a_receive_reads_only_its_own_slot_and_no_more_than_the_caller_has_room_for`:
   the device rewrites every status word at each read and the caller's buffer is any size. One
   `receive` then reads frame bytes at most once. It reads only the buffer of the descriptor it
