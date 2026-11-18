@@ -1,0 +1,20 @@
+Falsifies `e1000e::proofs::a_written_descriptor_with_a_frame_error_is_dropped`.
+
+The defect: the receive verdict refuses only a CRC error and forgets the other four error bits, so a
+frame with a symbol, sequence, carrier extension or receive data error is delivered as good.
+
+Expected to fail: the harness's `assert!(receive_verdict(word, room) == ReceiveVerdict::Drop)`, on
+any written word whose only error bits are among the other four and whose length fits.
+
+diff --git a/src/descriptor.rs b/src/descriptor.rs
+--- a/src/descriptor.rs
++++ b/src/descriptor.rs
+@@ -104,7 +104,7 @@ pub fn receive_verdict(word: u64, room: usize) -> ReceiveVerdict {
+     let len = (word & 0xffff) as usize;
+     let fits =
+         (14..=MAXIMUM_FRAME_BYTES).contains(&len) && len <= room && len as u64 <= BUFFER_BYTES;
+-    if status & RECEIVE_STATUS_END_OF_PACKET == 0 || errors & RECEIVE_FRAME_ERROR_MASK != 0 || !fits
++    if status & RECEIVE_STATUS_END_OF_PACKET == 0 || errors & RECEIVE_FRAME_ERROR_MASK & 0x01 != 0 || !fits
+     {
+         return ReceiveVerdict::Drop;
+     }
