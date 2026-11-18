@@ -19,6 +19,7 @@ macro_rules! say {
 mod boot;
 mod gateway_lookup;
 mod machine;
+mod receive_tail_cost;
 
 use e1000e::{DataPlane, DirectMemoryAccessRegion, Tails, layout, registers::*};
 use machine::{EXIT_FAIL, EXIT_PASS, PciFunction, Registers, exit_qemu};
@@ -144,6 +145,7 @@ extern "C" fn smoke_main() -> ! {
     if transmitted == 0 || received == 0 {
         fail("the frame counters did not move");
     }
+    receive_tail_cost::measure(&mut data_plane, &mut region, &registers, station);
     say!("PASS\n");
     exit_qemu(EXIT_PASS)
 }

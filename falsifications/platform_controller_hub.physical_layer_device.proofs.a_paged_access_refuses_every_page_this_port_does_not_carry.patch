@@ -1,0 +1,22 @@
+Falsifies `e1000e::platform_controller_hub::physical_layer_device::proofs::a_paged_access_refuses_every_page_this_port_does_not_carry`.
+
+The defect: the plan forgets that this port carries no page from 1 to 767, so an offset on one of
+those pages is planned as an access at PHY number 2 instead of being refused.
+
+Expected to fail: the harness's `assert!(plan_paged_access(off).is_err())`, on any offset whose
+page is from 1 to 767.
+
+diff --git a/src/platform_controller_hub/physical_layer_device.rs b/src/platform_controller_hub/physical_layer_device.rs
+--- a/src/platform_controller_hub/physical_layer_device.rs
++++ b/src/platform_controller_hub/physical_layer_device.rs
+@@ -418,9 +418,7 @@ pub struct PagedAccessPlan {
+ pub const fn plan_paged_access(offset: u32) -> Result<PagedAccessPlan, Error> {
+     let page = offset >> PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
+     let register = offset & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER;
+-    if page == BM_WUC_PAGE
+-        || (page > 0 && page < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE)
+-        || page > MAXIMUM_PAGE
++    if page == BM_WUC_PAGE || page > MAXIMUM_PAGE
+     {
+         return Err(Error::PageNotPorted);
+     }

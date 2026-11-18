@@ -534,19 +534,11 @@ mod proofs {
     /// Falsification: replayable `falsifications/platform_controller_hub.physical_layer_device.proofs.a_paged_access_selects_the_offsets_own_page_and_register.patch`
     /// **Every paged access this port will make names a PHY number, a position on the management bus, that exists (1 or 2), a
     /// five-bit register that is the offset's own, and a page select that is the offset's page**
-    /// (768 shown as 0), written only when the register is above the unpaged range. Pages 1 to
-    /// 767, the host wakeup page and every page above [`MAXIMUM_PAGE`] are refused.
+    /// (768 shown as 0), written only when the register is above the unpaged range.
     ///
     #[kani::proof]
     fn a_paged_access_selects_the_offsets_own_page_and_register() {
         let off: u32 = kani::any();
-        let refused = off >> PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
-        if (refused > 0 && refused < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE)
-            || refused == BM_WUC_PAGE
-            || refused > MAXIMUM_PAGE
-        {
-            assert!(plan_paged_access(off).is_err());
-        }
         if let Ok(p) = plan_paged_access(off) {
             let page = off >> PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
             assert!(p.physical_layer_device_number == 1 || p.physical_layer_device_number == 2);
@@ -564,6 +556,22 @@ mod proofs {
                 }
                 None => assert!(p.register <= MAXIMUM_PHYSICAL_LAYER_DEVICE_MULTI_PAGE_REGISTER),
             }
+        }
+    }
+
+    /// Falsification: replayable `falsifications/platform_controller_hub.physical_layer_device.proofs.a_paged_access_refuses_every_page_this_port_does_not_carry.patch`
+    /// **Pages 1 to 767, the host wakeup page and every page above [`MAXIMUM_PAGE`] are refused**,
+    /// for every offset.
+    ///
+    #[kani::proof]
+    fn a_paged_access_refuses_every_page_this_port_does_not_carry() {
+        let off: u32 = kani::any();
+        let page = off >> PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
+        if (page > 0 && page < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE)
+            || page == BM_WUC_PAGE
+            || page > MAXIMUM_PAGE
+        {
+            assert!(plan_paged_access(off).is_err());
         }
     }
 }

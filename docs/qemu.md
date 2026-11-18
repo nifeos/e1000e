@@ -5,7 +5,8 @@
 direct memory access (DMA) region, performs the 82574L list in [bring-up.md](bring-up.md) step by
 step, and calls `DataPlane::start`. It then sends one Address Resolution Protocol (ARP) request to
 the gateway of QEMU's user-mode network through `DataPlane::transmit`, and takes the gateway's
-reply through `DataPlane::receive`. It is not part of CI: a person runs it by hand.
+reply through `DataPlane::receive`, and last measures what the receive tail write costs (see
+[The receive tail write](#the-receive-tail-write)). It is not part of CI: a person runs it by hand.
 
 ## What it needs
 
@@ -65,11 +66,16 @@ transmit descriptor 0: descriptor done
 received: 64 bytes, ether type 0806
 received: ARP reply 10.0.2.2 is-at 52:55:0a:00:02:02
 counters: 1 good frames transmitted, 1 good frames received
+measurement: 32 bursts of 15 frames each way, median ticks per burst
+measurement: one tail write per frame: 125550 ticks, 8370 per frame, 480 tail writes
+measurement: one tail write per burst: 17730 ticks, 1182 per frame, 32 tail writes
+measurement: one receive tail store: 6881 ticks
 PASS
 capture: <repository>/tests/qemu-smoke/target/e1000e-qemu-smoke.pcap
 ```
 
-The step numbers are the steps of the 82574L list. The addresses depend on the QEMU version and
+The step numbers are the steps of the 82574L list. The measurement's tick counts vary from run to
+run and from host to host. The addresses depend on the QEMU version and
 the machine type; the station address is QEMU's default. The last line before `PASS` reads the
 good-frame counters, so the device itself confirms that a frame went out and one came in. A
 failure prints `FAIL:` and the reason, such as `FAIL: the link never came up`, and the program
@@ -85,3 +91,30 @@ tcpdump -nr tests/qemu-smoke/target/e1000e-qemu-smoke.pcap -e
 
 A pass shows two frames, the broadcast request from `52:54:00:12:34:56` and the gateway's reply
 from `52:55:0a:00:02:02`.
+
+## The receive tail write
+
+`DataPlane::receive` passes one receive tail value per descriptor it hands back, and `Tails`
+allows an implementation to keep the newest value back and store it once. The program's last step,
+`tests/qemu-smoke/src/receive_tail_cost.rs`, measures what that changes. Each round sends 15 ARP
+requests, waits until the gateway's 15 replies fill the receive ring, and times draining the ring
+with the time-stamp counter. Rounds alternate between a `Tails` that stores every value and one
+that stores only the last, after the burst. A final step times 1000 stores of the value `RDT`
+already holds.
+
+Six runs with the Kernel Virtual Machine (KVM) and seven with QEMU's Tiny Code Generator
+(TCG) instead, with QEMU 10.2.1 on a 2.1 gigahertz Intel Xeon Platinum 8160 host, printed medians
+in these ranges, in time-stamp counter ticks at 2.1 gigahertz:
+
+| | with KVM (`-accel kvm -cpu host`) | with TCG |
+|---|---|---|
+| burst of 15, one store per frame | 1,207,542 to 1,509,500 (576 to 720 microseconds) | 67,060 to 136,148 (32 to 65 microseconds) |
+| burst of 15, one store per burst | 78,094 to 81,366 (37 to 39 microseconds) | 16,224 to 21,300 (8 to 10 microseconds) |
+| one `RDT` store | 81,201 to 89,043 (39 to 43 microseconds) | 5,879 to 8,562 (3 to 4 microseconds) |
+
+Nearly all of a burst's time is its tail stores: under KVM each store leaves the guest for QEMU's
+device model. One store per burst drains it 15 to 19 times faster with KVM and 3 to 7 times faster
+without. These are the costs of QEMU's model, not of an 82574L, where a register write is a posted bus
+write; no one has measured real hardware.
+
+To repeat the measurement with KVM, run the command line above with `-accel kvm -cpu host` added.

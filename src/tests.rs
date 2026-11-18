@@ -777,3 +777,65 @@ fn a_caller_buffer_too_small_is_counted_apart_from_a_bad_frame() {
     assert_eq!(data_plane.dropped, 3);
     assert_eq!(data_plane.dropped_for_lack_of_room, 1);
 }
+
+/// Tails that keep the newest receive tail back instead of storing it, as [`Tails`] allows.
+struct HeldBackReceiveTail {
+    held: Option<u32>,
+    stores: usize,
+}
+impl Tails for HeldBackReceiveTail {
+    fn set_receive_tail(&mut self, value: u32) {
+        self.held = Some(value);
+        self.stores += 1;
+    }
+    fn set_transmit_tail(&mut self, _: u32) {
+        unreachable!("receive writes no transmit tail");
+    }
+    fn barrier(&mut self) {}
+}
+
+#[test]
+fn a_receive_tail_held_back_to_one_store_per_burst_hands_back_every_slot() {
+    let (mut simulator, mut data_plane) = started();
+    let mut out = [0u8; MAXIMUM_FRAME_BYTES];
+    for lap in 0..5u8 {
+        let mut sent = Vec::new();
+        while simulator.deliver(
+            &frame(lap, 60 + sent.len()),
+            60 + sent.len() as u16,
+            GOOD,
+            0,
+        ) {
+            sent.push(frame(lap, 60 + sent.len()));
+        }
+        assert_eq!(
+            sent.len(),
+            usize::from(RECEIVE_ENTRIES - 1),
+            "lap {lap} ring not refilled"
+        );
+        let before = simulator.receive_tail;
+        let mut tails = HeldBackReceiveTail {
+            held: None,
+            stores: 0,
+        };
+        for f in &sent {
+            assert_eq!(
+                data_plane.receive(&mut simulator, &mut tails, &mut out),
+                Some(f.len())
+            );
+            assert_eq!(&out[..f.len()], &f[..]);
+        }
+        assert_eq!(
+            data_plane.receive(&mut simulator, &mut tails, &mut out),
+            None
+        );
+        assert_eq!(
+            simulator.receive_tail, before,
+            "the device saw a held-back tail"
+        );
+        assert_eq!(tails.stores, sent.len(), "one tail value per frame");
+        // The one store the burst makes: the newest value hands back every slot at once.
+        simulator.receive_tail = tails.held.expect("receive named no tail");
+    }
+    assert_eq!(data_plane.dropped, 0);
+}
