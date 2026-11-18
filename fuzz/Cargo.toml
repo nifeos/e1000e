@@ -24,6 +24,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "e1000e_receive_ring"
+path = "fuzz_targets/e1000e_receive_ring.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "e1000e_descriptor_ring_flush"
 path = "fuzz_targets/e1000e_descriptor_ring_flush.rs"
 test = false

@@ -2,25 +2,45 @@ use super::*;
 
 /// Falsification: replayable `falsifications/proofs.a_delivered_frame_always_fits_the_buffer_and_the_room.patch`
 /// **No word a device can write makes the driver read outside a buffer or past its caller's
-/// space, and no written descriptor with an error bit or without end-of-packet is delivered.** The
-/// descriptor's second word is entirely the device's; this is every value of it.
+/// space.** The descriptor's second word is entirely the device's; this is every value of it.
 ///
 #[kani::proof]
 fn a_delivered_frame_always_fits_the_buffer_and_the_room() {
     let word: u64 = kani::any();
     let room: usize = kani::any();
-    let verdict = receive_verdict(word, room);
-    if let ReceiveVerdict::Frame(n) = verdict {
+    if let ReceiveVerdict::Frame(n) = receive_verdict(word, room) {
         assert!(n <= room);
         assert!(n as u64 <= BUFFER_BYTES);
         assert!(n <= MAXIMUM_FRAME_BYTES);
     }
+}
+
+/// Falsification: replayable `falsifications/proofs.a_written_descriptor_with_a_frame_error_is_dropped.patch`
+/// **A descriptor the device has written with any bit of [`RECEIVE_FRAME_ERROR_MASK`] set is
+/// dropped, whatever its length and the caller's room.**
+///
+#[kani::proof]
+fn a_written_descriptor_with_a_frame_error_is_dropped() {
+    let word: u64 = kani::any();
+    let room: usize = kani::any();
     let status = (word >> 32) as u8;
     let errors = (word >> 40) as u8;
-    if status & RECEIVE_STATUS_DESCRIPTOR_DONE != 0
-        && (status & RECEIVE_STATUS_END_OF_PACKET == 0 || errors & RECEIVE_FRAME_ERROR_MASK != 0)
-    {
-        assert!(verdict == ReceiveVerdict::Drop);
+    if status & RECEIVE_STATUS_DESCRIPTOR_DONE != 0 && errors & RECEIVE_FRAME_ERROR_MASK != 0 {
+        assert!(receive_verdict(word, room) == ReceiveVerdict::Drop);
+    }
+}
+
+/// Falsification: replayable `falsifications/proofs.a_written_descriptor_without_end_of_packet_is_dropped.patch`
+/// **A descriptor the device has written without end-of-packet is dropped, whatever its length and
+/// the caller's room**, since a frame that spans buffers is never reassembled.
+///
+#[kani::proof]
+fn a_written_descriptor_without_end_of_packet_is_dropped() {
+    let word: u64 = kani::any();
+    let room: usize = kani::any();
+    let status = (word >> 32) as u8;
+    if status & RECEIVE_STATUS_DESCRIPTOR_DONE != 0 && status & RECEIVE_STATUS_END_OF_PACKET == 0 {
+        assert!(receive_verdict(word, room) == ReceiveVerdict::Drop);
     }
 }
 
