@@ -3,7 +3,7 @@
 Dates are UTC. One line per release, what changed and why, so a reader of the diff has the
 sentence beside it.
 
-## Unreleased
+## 0.1.0-pre.3
 
 - `Tails` lets an implementation hold a receive tail write back and store a later value in its
   place. Under QEMU with the Kernel Virtual Machine (KVM), one `RDT` store per burst of 15
