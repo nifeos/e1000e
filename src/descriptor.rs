@@ -3,10 +3,10 @@
 
 use super::*;
 
-/// The page of BAR0 holding receive queue 0's registers, mapped into the process.
+/// The page of BAR0 holding receive queue 0's registers: one of the two pages a stack half maps.
 pub const RECEIVE_QUEUE_PAGE: u64 = 0x2000;
 
-/// The page of BAR0 holding transmit queue 0's registers, mapped into the process.
+/// The page of BAR0 holding transmit queue 0's registers: one of the two pages a stack half maps.
 pub const TRANSMIT_QUEUE_PAGE: u64 = 0x3000;
 
 /// Where `RDT` sits inside [`RECEIVE_QUEUE_PAGE`], and `TDT` inside [`TRANSMIT_QUEUE_PAGE`]: the
