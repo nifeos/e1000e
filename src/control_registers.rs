@@ -84,8 +84,8 @@ const _: () = assert!(
 
 /// **Receive Control** (`E1000_RCTL`, Linux's `regs.h`) as the kernel half programs it: enabled,
 /// broadcast accepted (DHCP's offer is broadcast), 2048-byte buffers (size field zero), the CRC
-/// stripped. **Not** promiscuous: unicast is filtered to receive-address entry 0, which the process
-/// cannot write.
+/// stripped. **Not** promiscuous: unicast is filtered to receive-address entry 0, which a stack half
+/// that maps only the queue pages cannot write.
 #[doc(alias = "receive control")]
 #[doc(alias = "rctl")]
 #[doc(alias = "E1000_RCTL")]
