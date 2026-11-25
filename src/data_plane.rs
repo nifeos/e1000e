@@ -39,7 +39,7 @@ pub trait DirectMemoryAccessRegion {
 /// does the same: `e1000_alloc_rx_buffers` writes `RDT` once per 16 buffers it refills. Under
 /// QEMU, one store per burst of 15 frames instead of one per frame drains the burst 15 to 19 times
 /// faster with the Kernel Virtual Machine (KVM) and 3 to 7 times faster without it;
-/// [`docs/qemu.md`](https://github.com/nifeos/e1000e/blob/main/docs/qemu.md) has the measurement.
+/// [`docs/qemu.md`](https://github.com/partsfoundry/e1000e/blob/main/docs/qemu.md) has the measurement.
 ///
 /// [`Tails::barrier`] orders the region against the device on every architecture the crate builds
 /// for: on `x86_64` a compiler fence (`core::sync::atomic::compiler_fence`) is enough, since the
