@@ -173,7 +173,7 @@ fn frames_arrive_in_order_across_many_laps_of_the_ring() {
             None
         );
     }
-    assert_eq!(data_plane.dropped, 0);
+    assert_eq!(data_plane.dropped(), 0);
 }
 
 #[test]
@@ -214,7 +214,7 @@ fn a_lying_or_bad_descriptor_is_dropped_and_the_ring_moves_on() {
         Some(99)
     );
     assert_eq!(&out[..99], &f[..]);
-    assert_eq!(data_plane.dropped, 4);
+    assert_eq!(data_plane.dropped(), 4);
 }
 
 #[test]
@@ -226,8 +226,8 @@ fn a_frame_larger_than_the_callers_room_is_dropped_not_truncated() {
         simulator.with(|s, r| data_plane.receive(s, r, &mut small)),
         None
     );
-    assert_eq!(data_plane.dropped, 1);
-    assert_eq!(data_plane.dropped_for_lack_of_room, 1);
+    assert_eq!(data_plane.dropped(), 1);
+    assert_eq!(data_plane.dropped_for_lack_of_room(), 1);
 }
 
 #[test]
@@ -310,6 +310,9 @@ fn a_region_running_past_the_top_of_physical_memory_is_refused() {
     let highest = u64::MAX - layout::DIRECT_MEMORY_ACCESS_REGION_BYTES;
     let _ = DataPlane::new(highest);
     assert!(std::panic::catch_unwind(|| DataPlane::new(highest + 1)).is_err());
+    assert!(DataPlane::try_new(highest).is_some());
+    assert!(DataPlane::try_new(highest + 1).is_none());
+    assert!(DataPlane::try_new(u64::MAX).is_none());
 }
 
 #[test]
@@ -722,7 +725,7 @@ fn receive_returns_after_one_lap_of_frames_it_does_not_deliver() {
     let mut out = [0u8; MAXIMUM_FRAME_BYTES];
     for call in 1..=3u32 {
         assert_eq!(data_plane.receive(&mut device, &mut tails, &mut out), None);
-        assert_eq!(data_plane.dropped, call * u32::from(RECEIVE_ENTRIES));
+        assert_eq!(data_plane.dropped(), call * u32::from(RECEIVE_ENTRIES));
         assert_eq!(device.refills, u64::from(call) * u64::from(RECEIVE_ENTRIES));
     }
 }
@@ -759,8 +762,8 @@ fn a_frame_of_the_largest_size_with_a_vlan_tag_goes_both_ways() {
         simulator.with(|s, r| data_plane.receive(s, r, &mut out)),
         None
     );
-    assert_eq!(data_plane.dropped, 1);
-    assert_eq!(data_plane.dropped_for_lack_of_room, 0);
+    assert_eq!(data_plane.dropped(), 1);
+    assert_eq!(data_plane.dropped_for_lack_of_room(), 0);
 }
 
 #[test]
@@ -774,8 +777,8 @@ fn a_caller_buffer_too_small_is_counted_apart_from_a_bad_frame() {
         simulator.with(|s, r| data_plane.receive(s, r, &mut small)),
         None
     );
-    assert_eq!(data_plane.dropped, 3);
-    assert_eq!(data_plane.dropped_for_lack_of_room, 1);
+    assert_eq!(data_plane.dropped(), 3);
+    assert_eq!(data_plane.dropped_for_lack_of_room(), 1);
 }
 
 /// Tails that keep the newest receive tail back instead of storing it, as [`Tails`] allows.
@@ -837,5 +840,36 @@ fn a_receive_tail_held_back_to_one_store_per_burst_hands_back_every_slot() {
         // The one store the burst makes: the newest value hands back every slot at once.
         simulator.receive_tail = tails.held.expect("receive named no tail");
     }
-    assert_eq!(data_plane.dropped, 0);
+    assert_eq!(data_plane.dropped(), 0);
+}
+
+/// A register file holding one Device Status word; every other offset reads zero.
+struct DeviceStatus(u32);
+
+impl Hardware for DeviceStatus {
+    fn read(&mut self, offset: u64) -> u32 {
+        if offset == registers::DEVICE_STATUS_REGISTER {
+            self.0
+        } else {
+            0
+        }
+    }
+    fn write(&mut self, _: u64, _: u32) {}
+    fn read_flash_status(&mut self, _: u64) -> u16 {
+        0
+    }
+    fn delay_microseconds(&mut self, _: u64) {}
+    fn pci_vendor_id(&mut self) -> u16 {
+        VENDOR_INTEL
+    }
+    fn note(&mut self, _: platform_controller_hub::sequence::BringUpObservation) {}
+}
+
+/// The link is up exactly when Device Status carries its link-up bit, whatever else it carries.
+#[test]
+fn the_link_is_up_exactly_when_device_status_says_so() {
+    assert!(is_link_up(&mut DeviceStatus(DEVICE_STATUS_LINK_UP)));
+    assert!(is_link_up(&mut DeviceStatus(u32::MAX)));
+    assert!(!is_link_up(&mut DeviceStatus(0)));
+    assert!(!is_link_up(&mut DeviceStatus(!DEVICE_STATUS_LINK_UP)));
 }

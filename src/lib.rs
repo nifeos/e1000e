@@ -1,4 +1,5 @@
 #![no_std]
+#![forbid(unsafe_code)]
 //! **The Intel `e1000e` family, as pure logic**: the 82574L and the Sunrise Point I219.
 //!
 //! Everything a driver computes, and nothing it touches. A driver may split into a kernel half
@@ -51,7 +52,7 @@ pub use control_registers::{
     INTERRUPT_CAUSE_RECEIVE_OVERRUN, INTERRUPT_CAUSE_RECEIVE_SEQUENCE_ERROR,
     INTERRUPT_CAUSE_RECEIVE_TIMER, INTERRUPT_CAUSE_TRANSMIT_DESCRIPTOR_WRITTEN_BACK,
     INTERRUPT_CAUSE_TRANSMIT_QUEUE_EMPTY, RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE,
-    RECEIVE_MAC_ADDRESS_HIGH_VALID, receive_control_register_value,
+    RECEIVE_MAC_ADDRESS_HIGH_VALID, is_link_up, receive_control_register_value,
     station_mac_address_from_receive_words, transmit_control_register_value,
     transmit_inter_packet_gap_register_value,
 };
@@ -65,7 +66,7 @@ pub use descriptor::{
 };
 /// The register access the I219 sequences and the 82574L's PHY identifier read both take.
 pub use platform_controller_hub::Hardware;
-pub use supported_devices::{DEVICE_IDS, VENDOR_INTEL, is_supported_device, model_name};
+pub use supported_devices::{VENDOR_INTEL, is_supported_device, model_name};
 
 #[cfg(kani)]
 mod proofs;

@@ -5,6 +5,8 @@
 pub const VENDOR_INTEL: u16 = 0x8086;
 
 /// The device ids this driver claims, with what each is. Read from Linux's `hw.h` on 2026-10-04.
+/// Private: [`is_supported_device`] and [`model_name`] answer what a probe asks, so the table can
+/// grow a field (the family a caller branches on, say) without breaking a caller.
 ///
 /// **Deliberately narrow.** The 82574L is what QEMU's `-device e1000e` presents, and proves the
 /// sequence. The I219 entries are the Sunrise Point (SPT) generation only. One Sunrise Point
@@ -13,7 +15,7 @@ pub const VENDOR_INTEL: u16 = 0x8086;
 /// stay because FreeBSD runs one sequence for the whole class. Later PCH generations (Cannon Lake onward,
 /// dozens of ids) need the bench to prove one before the family is widened, because the
 /// generation-specific workarounds are exactly what this crate does not do (`BUGS`).
-pub const DEVICE_IDS: &[(u16, &str)] = &[
+pub(crate) const DEVICE_IDS: &[(u16, &str)] = &[
     (0x10d3, "82574L (QEMU's e1000e)"),
     (0x156f, "I219-LM (SPT)"),
     (0x1570, "I219-V (SPT)"),
@@ -26,12 +28,29 @@ pub const DEVICE_IDS: &[(u16, &str)] = &[
     (0x15d6, "I219-V5 (SPT)"),
 ];
 
-/// Is `vendor:device` a part this driver claims? See [`DEVICE_IDS`] for why the list is short.
+/// Is `vendor:device` a part this driver claims?
+///
+/// The list is deliberately narrow: the 82574L, which QEMU's `-device e1000e` presents, and the
+/// Sunrise Point (SPT) generation of the I219. Later platform controller hub generations carry
+/// workarounds this crate does not, so they stay unclaimed until a bench run proves one.
+///
+/// ```
+/// use e1000e::{VENDOR_INTEL, is_supported_device};
+///
+/// assert!(is_supported_device(VENDOR_INTEL, 0x10d3)); // the 82574L
+/// assert!(is_supported_device(VENDOR_INTEL, 0x15e3)); // an I219-LM5
+/// assert!(!is_supported_device(VENDOR_INTEL, 0x0d53)); // a Comet Lake I219, not claimed
+/// ```
 pub fn is_supported_device(vendor: u16, device: u16) -> bool {
     vendor == VENDOR_INTEL && DEVICE_IDS.iter().any(|&(id, _)| id == device)
 }
 
 /// What a claimed device id is, for a boot line; `None` for one this driver does not claim.
+///
+/// ```
+/// assert_eq!(e1000e::model_name(0x15e3), Some("I219-LM5 (SPT)"));
+/// assert_eq!(e1000e::model_name(0x0d53), None);
+/// ```
 pub fn model_name(device: u16) -> Option<&'static str> {
     DEVICE_IDS
         .iter()

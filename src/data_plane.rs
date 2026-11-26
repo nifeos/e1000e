@@ -83,21 +83,51 @@ impl core::error::Error for TransmitError {}
 /// **The data plane**: two ring cursors and the region's physical base. Everything a network stack
 /// does to the device goes through this, so all of it runs on the host against a simulated
 /// device.
+///
+/// One frame each way, a `Vec<u8>` as the region and two integers as the tails (hidden here, shown
+/// in `examples/host_ring.rs`); on hardware they are the mapped memory and the queue registers.
+///
+/// ```
+/// use e1000e::{DataPlane, DirectMemoryAccessRegion, RECEIVE_STATUS_DESCRIPTOR_DONE, layout};
+/// # struct Region(Vec<u8>);
+/// # impl DirectMemoryAccessRegion for Region {
+/// #     fn read_u64(&self, o: u64) -> u64 { let mut w = [0; 8]; self.read_bytes(o, &mut w); u64::from_le_bytes(w) }
+/// #     fn write_u64(&mut self, o: u64, v: u64) { self.write_bytes(o, &v.to_le_bytes()) }
+/// #     fn read_bytes(&self, o: u64, out: &mut [u8]) { out.copy_from_slice(&self.0[o as usize..][..out.len()]) }
+/// #     fn write_bytes(&mut self, o: u64, s: &[u8]) { self.0[o as usize..][..s.len()].copy_from_slice(s) }
+/// # }
+/// # #[derive(Default)] struct TailRegisters { receive: u32, transmit: u32 }
+/// # impl e1000e::Tails for TailRegisters {
+/// #     fn set_receive_tail(&mut self, v: u32) { self.receive = v }
+/// #     fn set_transmit_tail(&mut self, v: u32) { self.transmit = v }
+/// #     fn barrier(&mut self) { core::sync::atomic::fence(core::sync::atomic::Ordering::SeqCst) }
+/// # }
+/// # fn main() -> Result<(), e1000e::TransmitError> {
+/// const BASE: u64 = 0x1000_0000;
+/// let mut region = Region(vec![0; layout::DIRECT_MEMORY_ACCESS_REGION_BYTES as usize]);
+/// let mut tails = TailRegisters::default();
+/// let mut data_plane = DataPlane::new(BASE);
+/// data_plane.start(&mut region, &mut tails);
+/// // The device writes a 60-byte frame into the buffer descriptor 0 names, then its status.
+/// let descriptor = layout::receive_descriptor(0);
+/// region.write_bytes(region.read_u64(descriptor) - BASE, &[0xab; 60]);
+/// let done = u64::from(RECEIVE_STATUS_DESCRIPTOR_DONE | e1000e::RECEIVE_STATUS_END_OF_PACKET);
+/// region.write_u64(descriptor + 8, 60 | done << 32);
+/// let mut frame = [0; 2048];
+/// assert_eq!(data_plane.receive(&mut region, &mut tails, &mut frame), Some(60));
+/// // One frame out: transmit descriptor 0 is filled and the tail moves past it.
+/// data_plane.transmit(&mut region, &mut tails, &frame[..60])?;
+/// assert_eq!(tails.transmit, 1);
+/// # Ok(()) }
+/// ```
 #[derive(Debug)]
 pub struct DataPlane {
     physical_address: u64,
     receive_next: u16,
     transmit_next: u16,
     transmit_clean: u16,
-    /// A running count of the frames the device wrote that [`DataPlane::receive`] did not
-    /// deliver to the caller, for any reason. It wraps at `u32::MAX`. A caller reads it to see
-    /// loss that the receive path otherwise absorbs.
-    pub dropped: u32,
-    /// Of [`DataPlane::dropped`], a running count of the frames that were good but longer than
-    /// the room the caller gave that [`DataPlane::receive`] call. It wraps at `u32::MAX`. A
-    /// caller reads it to tell a too-small buffer from a frame the device flagged as bad.
-    /// Provisional name.
-    pub dropped_for_lack_of_room: u32,
+    dropped: u32,
+    dropped_for_lack_of_room: u32,
 }
 
 impl DataPlane {
@@ -108,21 +138,52 @@ impl DataPlane {
     ///
     /// When the region, [`layout::DIRECT_MEMORY_ACCESS_REGION_BYTES`] long, would run past the
     /// top of the physical address space, since every buffer address is the base plus an offset.
+    /// [`DataPlane::try_new`] refuses that case instead.
     pub fn new(data_plane_physical_address: u64) -> DataPlane {
-        assert!(
-            data_plane_physical_address
-                .checked_add(layout::DIRECT_MEMORY_ACCESS_REGION_BYTES)
-                .is_some(),
-            "the direct memory access region runs past the top of the address space"
-        );
-        DataPlane {
+        match DataPlane::try_new(data_plane_physical_address) {
+            Some(data_plane) => data_plane,
+            None => {
+                panic!("the direct memory access region runs past the top of the address space")
+            }
+        }
+    }
+
+    /// A data plane over the region at `data_plane_physical_address`, or `None` when the region,
+    /// [`layout::DIRECT_MEMORY_ACCESS_REGION_BYTES`] long, would run past the top of the physical
+    /// address space. [`DataPlane::new`] without the panic, for a caller whose mapping does not
+    /// already rule that case out. Provisional name.
+    ///
+    /// ```
+    /// use e1000e::{DataPlane, layout::DIRECT_MEMORY_ACCESS_REGION_BYTES};
+    ///
+    /// assert!(DataPlane::try_new(0x8000_0000).is_some());
+    /// assert!(DataPlane::try_new(u64::MAX - DIRECT_MEMORY_ACCESS_REGION_BYTES + 1).is_none());
+    /// ```
+    pub fn try_new(data_plane_physical_address: u64) -> Option<DataPlane> {
+        data_plane_physical_address.checked_add(layout::DIRECT_MEMORY_ACCESS_REGION_BYTES)?;
+        Some(DataPlane {
             physical_address: data_plane_physical_address,
             receive_next: 0,
             transmit_next: 0,
             transmit_clean: 0,
             dropped: 0,
             dropped_for_lack_of_room: 0,
-        }
+        })
+    }
+
+    /// A running count of the frames the device wrote that [`DataPlane::receive`] did not
+    /// deliver to the caller, for any reason. It wraps at `u32::MAX`. A caller reads it to see
+    /// loss that the receive path otherwise absorbs.
+    pub fn dropped(&self) -> u32 {
+        self.dropped
+    }
+
+    /// Of [`DataPlane::dropped`], a running count of the frames that were good but longer than
+    /// the room the caller gave that [`DataPlane::receive`] call. It wraps at `u32::MAX`. A
+    /// caller reads it to tell a too-small buffer from a frame the device flagged as bad.
+    /// Provisional name.
+    pub fn dropped_for_lack_of_room(&self) -> u32 {
+        self.dropped_for_lack_of_room
     }
 
     /// The receive descriptor the next [`DataPlane::receive`] looks at, for a caller that wants to
@@ -215,6 +276,13 @@ impl DataPlane {
     }
 
     /// Queue `frame` for transmission.
+    ///
+    /// # Errors
+    ///
+    /// - [`TransmitError::BadLength`] when `frame` is empty or longer than
+    ///   [`MAXIMUM_FRAME_BYTES`].
+    /// - [`TransmitError::Full`] when every transmit descriptor is still the device's, after
+    ///   reclaiming those it has finished. Nothing is queued; the caller tries again later.
     pub fn transmit(
         &mut self,
         region: &mut impl DirectMemoryAccessRegion,

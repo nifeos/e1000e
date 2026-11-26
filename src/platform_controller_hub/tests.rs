@@ -5,7 +5,7 @@ use super::*;
 #[test]
 fn the_pch_class_is_every_claimed_i219_and_not_qemus_part() {
     assert!(!is_platform_controller_hub_device(0x10d3));
-    for &(id, model) in super::super::DEVICE_IDS {
+    for &(id, model) in crate::supported_devices::DEVICE_IDS {
         assert_eq!(
             is_platform_controller_hub_device(id),
             model.starts_with("I219"),

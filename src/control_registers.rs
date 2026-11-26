@@ -157,3 +157,36 @@ pub fn station_mac_address_from_receive_words(
     (station_mac_address != [0; 6] && station_mac_address[0] & 1 == 0)
         .then_some(station_mac_address)
 }
+
+/// **Is the link up?** One read of Device Status (`STATUS`, [`crate::registers::DEVICE_STATUS_REGISTER`])
+/// and its [`DEVICE_STATUS_LINK_UP`] bit, the check FreeBSD's `e1000_check_for_copper_link_generic`
+/// and Linux's `e1000e_has_link` begin with. Provisional name.
+///
+/// ```
+/// use e1000e::{DEVICE_STATUS_LINK_UP, Hardware, is_link_up, platform_controller_hub::sequence};
+///
+/// /// A register file that answers every read with the same status word.
+/// struct Status(u32);
+///
+/// impl Hardware for Status {
+///     fn read(&mut self, _offset: u64) -> u32 {
+///         self.0
+///     }
+///     fn write(&mut self, _offset: u64, _value: u32) {}
+///     fn read_flash_status(&mut self, _offset: u64) -> u16 {
+///         0
+///     }
+///     fn delay_microseconds(&mut self, _microseconds: u64) {}
+///     fn pci_vendor_id(&mut self) -> u16 {
+///         e1000e::VENDOR_INTEL
+///     }
+///     fn note(&mut self, _note: sequence::BringUpObservation) {}
+/// }
+///
+/// assert!(is_link_up(&mut Status(DEVICE_STATUS_LINK_UP)));
+/// assert!(!is_link_up(&mut Status(0)));
+/// ```
+#[doc(alias = "link_state")]
+pub fn is_link_up(hardware: &mut impl crate::Hardware) -> bool {
+    hardware.read(crate::registers::DEVICE_STATUS_REGISTER) & DEVICE_STATUS_LINK_UP != 0
+}

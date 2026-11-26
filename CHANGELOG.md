@@ -3,6 +3,26 @@
 Dates are UTC. One line per release, what changed and why, so a reader of the diff has the
 sentence beside it.
 
+## Unreleased
+
+- Breaking: `DataPlane`'s two counters are private, read through `DataPlane::dropped()` and
+  `DataPlane::dropped_for_lack_of_room()`, so a caller can no longer write them and the counts
+  can move without breaking a caller.
+- Breaking: the device table `DEVICE_IDS` is private. `is_supported_device` and `model_name`
+  answer what a probe asks, and the table can grow a field without breaking a caller.
+- `is_link_up` reads the link-up bit of Device Status, so a caller does not repeat the register and
+  the mask. Provisional name.
+- `DataPlane::try_new` returns `None` where `DataPlane::new` panics, a region that would run past
+  the top of the physical address space. Provisional name.
+- `#![forbid(unsafe_code)]` states that the crate has no `unsafe`, and the compiler holds it there.
+- Examples on `DataPlane` (one frame each way) and on `sequence::initialize_hardware` (the I219
+  bring-up order), and `examples/host_ring.rs` returns its errors with `?` rather than `expect`.
+- Every public function that returns a `Result` has an `# Errors` section naming which error it
+  returns and when.
+- The manifest names its documentation, docs.rs.
+- The package carries the crate, its example, its documents and the licenses (36 files, from 73),
+  leaving out the repository's workflows, hooks, falsification patches and lint settings.
+
 ## 0.1.0-pre.4
 
 - Removed the unused `KUMERAN_MODE_CONTROL_REGISTER`. It can return when a workaround for the

@@ -6,9 +6,24 @@ rust-version = "1.88"
 description = "Intel e1000e-family (82574L, I219) network controller logic: registers, descriptors and ring logic behind small traits, proven with Kani"
 license = "(MIT OR Apache-2.0) AND BSD-3-Clause AND BSD-2-Clause"
 repository = "https://github.com/partsfoundry/e1000e"
+documentation = "https://docs.rs/e1000e"
 readme = "README.md"
 keywords = ["no-std", "kani", "driver"]
 categories = ["no-std", "embedded", "hardware-support"]
+# What the package carries: the crate, its example and documents, and the licenses. The
+# repository's workflows, hooks, falsification patches, lint and mutation settings stay out.
+include = [
+    "/src/**",
+    "/examples/**",
+    "/docs/**",
+    "/Cargo.toml",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE-APACHE",
+    "/LICENSE-MIT",
+    "/LICENSE-BSD-2-Clause-FreeBSD",
+    "/LICENSE-BSD-3-Clause-Intel",
+]
 publish = false     # held until the maintainers decide the first release
 
 # no_std for a kernel and a network stack, std for host tests. It owns what every part of an

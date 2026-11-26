@@ -264,6 +264,13 @@ const _: () = assert!(
 /// One MDIO read of `register` at `physical_layer_device_number`, the PHY's position on the management bus,
 /// `e1000_read_phy_reg_mdic`. It goes through the `MDIC` register (the management data
 /// input/output control register).
+///
+/// # Errors
+///
+/// - [`Error::OutOfRange`] when `register` is wider than five bits; nothing is written.
+/// - [`Error::NotReady`] when `MDIC` never reports the transaction done.
+/// - [`Error::ManagementDataInterface`] when `MDIC` reports that the transaction failed.
+/// - [`Error::WrongRegister`] when `MDIC` completed for a register other than `register`.
 #[doc(alias = "mdic")]
 #[doc(alias = "e1000_read_phy_reg_mdic")]
 pub fn read_management_data_io(
@@ -286,6 +293,13 @@ pub fn read_management_data_io(
 
 /// One MDIO write, `e1000_write_phy_reg_mdic`. It goes through the `MDIC` register (the
 /// management data io control register).
+///
+/// # Errors
+///
+/// - [`Error::OutOfRange`] when `register` is wider than five bits; nothing is written.
+/// - [`Error::NotReady`] when `MDIC` never reports the transaction done.
+/// - [`Error::ManagementDataInterface`] when `MDIC` reports that the transaction failed.
+/// - [`Error::WrongRegister`] when `MDIC` completed for a register other than `register`.
 #[doc(alias = "mdic")]
 #[doc(alias = "e1000_write_phy_reg_mdic")]
 pub fn write_management_data_io(
@@ -342,6 +356,13 @@ pub struct SoftwareFlag(());
 impl SoftwareFlag {
     /// `e1000_acquire_swflag_ich8lan`: wait for the flag to be free, set it, and wait for it to
     /// read back set. On a refusal it clears the bit it wrote, as FreeBSD does.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::SoftwareFlagHeld`] when the flag stays set for
+    ///   [`SOFTWARE_FLAG_FREE_MILLISECONDS`]: another agent holds it.
+    /// - [`Error::SoftwareFlagRefused`] when the flag does not read back set within
+    ///   [`SOFTWARE_FLAG_TAKE_MILLISECONDS`]; the bit this function wrote is cleared again.
     pub fn acquire(hardware: &mut impl Hardware) -> Result<Self, Error> {
         let mut extended_control = 0;
         let mut free = false;
@@ -419,6 +440,12 @@ pub struct PagedAccessPlan {
 
 /// The decomposition `__e1000_read_phy_reg_hv` and `__e1000_write_phy_reg_hv` share, for the pages
 /// this port carries. Pure, so it is host-tested and model-checked.
+///
+/// # Errors
+///
+/// [`Error::PageNotPorted`] for page 800 (the host wakeup page), pages 1 to 767 (the 82577 and
+/// 82578 debug registers) and any page past 2047, which this port refuses rather than
+/// carries.
 pub const fn plan_paged_access(offset: u32) -> Result<PagedAccessPlan, Error> {
     let page = offset >> PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
     let register = offset & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER;
@@ -448,6 +475,13 @@ pub const fn plan_paged_access(offset: u32) -> Result<PagedAccessPlan, Error> {
 }
 
 /// Read a PCH PHY register by its paged offset ([`paged_offset`]).
+///
+/// # Errors
+///
+/// - [`Error::PageNotPorted`] when the offset's page is one this port refuses; nothing is written.
+/// - [`Error::NotReady`], [`Error::ManagementDataInterface`] or [`Error::WrongRegister`] when the
+///   page-select write or the access itself fails on the management bus, as
+///   [`read_management_data_io`] describes.
 pub fn read(hardware: &mut impl Hardware, _held: &SoftwareFlag, offset: u32) -> Result<u16, Error> {
     let p = plan_paged_access(offset)?;
     if let Some(sel) = p.select {
@@ -463,6 +497,13 @@ pub fn read(hardware: &mut impl Hardware, _held: &SoftwareFlag, offset: u32) -> 
 
 /// Write a PCH PHY register by its paged offset. FreeBSD's 82578 power-down workaround in the
 /// write path is not carried: no part this crate claims has that PHY.
+///
+/// # Errors
+///
+/// - [`Error::PageNotPorted`] when the offset's page is one this port refuses; nothing is written.
+/// - [`Error::NotReady`], [`Error::ManagementDataInterface`] or [`Error::WrongRegister`] when the
+///   page-select write or the access itself fails on the management bus, as
+///   [`read_management_data_io`] describes.
 pub fn write(
     hardware: &mut impl Hardware,
     _held: &SoftwareFlag,
@@ -482,6 +523,10 @@ pub fn write(
 }
 
 /// Read-modify-write under a held flag.
+///
+/// # Errors
+///
+/// Those of [`read()`], and then those of [`write()`]; when the read fails, nothing is written.
 pub fn update(
     hardware: &mut impl Hardware,
     held: &SoftwareFlag,
@@ -514,6 +559,12 @@ const _: () = assert!(((u16::MAX as u32) << 16) & (u16::MAX as u32) == 0);
 
 /// Read the PHY identifier at the 82574L's address, the generic MDIO path with no pages and no
 /// semaphore (the 82574L has neither). What QEMU's gates prove of this module.
+///
+/// # Errors
+///
+/// - [`Error::NotReady`] when `MDIC` never reports the transaction done.
+/// - [`Error::ManagementDataInterface`] when `MDIC` reports that the transaction failed.
+/// - [`Error::WrongRegister`] when `MDIC` completed for a register other than the identifier word asked for.
 pub fn read_identifier_at_device_number(
     hardware: &mut impl Hardware,
     physical_layer_device_number: u32,

@@ -19,7 +19,8 @@ The order follows FreeBSD's `em_reset`, `em_initialize_receive_unit` and
 4. Tell management firmware a driver has the device: set `EXTENDED_DEVICE_CONTROL_DRIVER_LOAD` in
    `EXTENDED_DEVICE_CONTROL_REGISTER`.
 5. Link: set `DEVICE_CONTROL_SET_LINK_UP` and `DEVICE_CONTROL_AUTO_SPEED_DETECTION_ENABLE` in
-   `CTRL`. `DEVICE_STATUS_LINK_UP` in `DEVICE_STATUS_REGISTER` says when the link is up.
+   `CTRL`. `is_link_up` reads `DEVICE_STATUS_LINK_UP` in `DEVICE_STATUS_REGISTER`, which says when
+   the link is up.
 6. The station address: read `RECEIVE_MAC_ADDRESS_0_LOW_REGISTER` and
    `RECEIVE_MAC_ADDRESS_0_HIGH_REGISTER` and pass both to `station_mac_address_from_receive_words`.
 7. Clear the multicast table: write zero to each of the `MULTICAST_TABLE_ARRAY_ENTRIES` 32-bit
