@@ -195,16 +195,6 @@ pub mod registers {
     #[doc(alias = "82577 physical layer device control 2")]
     #[doc(alias = "I82577_PHY_CTRL_2")]
     pub(crate) const I82577_PHYSICAL_LAYER_DEVICE_CONTROL_2_REGISTER: u32 = 18;
-    /// **Kumeran Mode Control** (OpenBSD's `HV_KMRN_MODE_CTRL`, with `I2_MODE_CTRL` as its I217
-    /// name, `sys/dev/pci/if_em_hw.h`; FreeBSD's `HV_KMRN_MODE_CTRL`, `e1000_ich8lan.h`). Page 769,
-    /// register 16. Kumeran is the interconnect between the MAC and this PHY. The register was
-    /// first defined for the Hanksville (82577) PHY and still applies on the later I217 through
-    /// I219 parts. It is not the `GG82563` PHY's Kumeran Mode Control on page 193
-    /// (`GG82563_PHY_KMRN_MODE_CTRL`), which this crate does not address.
-    #[doc(alias = "kumeran mode control")]
-    #[doc(alias = "HV_KMRN_MODE_CTRL")]
-    #[doc(alias = "I2_MODE_CTRL")]
-    pub const KUMERAN_MODE_CONTROL_REGISTER: u32 = paged_offset(769, 16);
     /// **Port General Configuration** (`BM_PORT_GEN_CFG`, FreeBSD's `e1000_ich8lan.h`). Page 769,
     /// register 17.
     #[doc(alias = "port general configuration")]
