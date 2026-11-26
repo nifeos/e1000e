@@ -65,7 +65,7 @@ pub use descriptor::{
 };
 /// The register access the I219 sequences and the 82574L's PHY identifier read both take.
 pub use platform_controller_hub::Hardware;
-pub use supported_devices::{DEVICE_IDS, VENDOR_INTEL, is_supported_device, model_name};
+pub use supported_devices::{VENDOR_INTEL, is_supported_device, model_name};
 
 #[cfg(kani)]
 mod proofs;

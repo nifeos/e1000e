@@ -108,7 +108,7 @@ The author read offsets, bits, descriptor layouts and device ids on 2026-10-04 (
 recalling them. The sources were Linux's `drivers/net/ethernet/intel/e1000e/regs.h`, `defines.h`
 and `hw.h`. The author cross-checked them the same day against FreeBSD's BSD-licensed
 `sys/dev/e1000/`: `e1000_regs.h`, and the SPT (Sunrise Point) class of `e1000_api.c`. That class
-holds every I219 row of `DEVICE_IDS` and two Comet Lake ids (`0x0d53`, `0x0d55`) the crate does not
+holds every I219 id the crate claims and two Comet Lake ids (`0x0d53`, `0x0d55`) the crate does not
 claim. The crate copies no Linux code.
 
 QEMU's `hw/net/e1000e_core.c` and `hw/net/e1000x_common.c` say what the emulated 82574L does with
@@ -143,7 +143,7 @@ then was 46cf612d (2026-08-30). The author copied the notice of `if_em.c` and `i
   and refused on transmit.
 - The test doubles are private to the crate's tests. `examples/host_ring.rs` is the fake to start
   from.
-- The crate claims only the 82574L and the Sunrise Point I219 rows of `DEVICE_IDS`. Later platform
+- The crate claims only the 82574L and the Sunrise Point I219 ids (`is_supported_device`). Later platform
   controller hub (PCH) generations need workarounds this crate does not carry.
 - The crate does not port the I219's link-up half, so it does not reconfigure the PHY when link
   comes up. A link that comes up and then loses frames points there first. The crate does not
