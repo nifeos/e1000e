@@ -11,6 +11,8 @@ sentence beside it.
 - Breaking: the device table `DEVICE_IDS` is private. `is_supported_device` and `model_name`
   answer what a probe asks, and the table can grow a field without breaking a caller.
 - The manifest names its documentation, docs.rs.
+- The package carries the crate, its example, its documents and the licenses (36 files, from 73),
+  leaving out the repository's workflows, hooks, falsification patches and lint settings.
 
 ## 0.1.0-pre.4
 
