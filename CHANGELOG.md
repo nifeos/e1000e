@@ -3,6 +3,13 @@
 Dates are UTC. One line per release, what changed and why, so a reader of the diff has the
 sentence beside it.
 
+## Unreleased
+
+- Removed the unused `KUMERAN_MODE_CONTROL_REGISTER`. It can return when a workaround for the
+  Kumeran interconnect (K1 or link stall) needs it.
+- The doc comments of `DataPlane::dropped` and `DataPlane::dropped_for_lack_of_room` say what each
+  counts and that a caller reads them.
+
 ## 0.1.0-pre.3
 
 - `Tails` lets an implementation hold a receive tail write back and store a later value in its

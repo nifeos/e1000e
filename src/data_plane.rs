@@ -89,10 +89,14 @@ pub struct DataPlane {
     receive_next: u16,
     transmit_next: u16,
     transmit_clean: u16,
-    /// Frames the device wrote that were not delivered, for a report line.
+    /// A running count of the frames the device wrote that [`DataPlane::receive`] did not
+    /// deliver to the caller, for any reason. It wraps at `u32::MAX`. A caller reads it to see
+    /// loss that the receive path otherwise absorbs.
     pub dropped: u32,
-    /// Of [`DataPlane::dropped`], the frames that were good but longer than the caller's buffer
-    /// in that [`DataPlane::receive`] call. Provisional name.
+    /// Of [`DataPlane::dropped`], a running count of the frames that were good but longer than
+    /// the room the caller gave that [`DataPlane::receive`] call. It wraps at `u32::MAX`. A
+    /// caller reads it to tell a too-small buffer from a frame the device flagged as bad.
+    /// Provisional name.
     pub dropped_for_lack_of_room: u32,
 }
 
