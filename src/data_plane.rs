@@ -89,15 +89,8 @@ pub struct DataPlane {
     receive_next: u16,
     transmit_next: u16,
     transmit_clean: u16,
-    /// A running count of the frames the device wrote that [`DataPlane::receive`] did not
-    /// deliver to the caller, for any reason. It wraps at `u32::MAX`. A caller reads it to see
-    /// loss that the receive path otherwise absorbs.
-    pub dropped: u32,
-    /// Of [`DataPlane::dropped`], a running count of the frames that were good but longer than
-    /// the room the caller gave that [`DataPlane::receive`] call. It wraps at `u32::MAX`. A
-    /// caller reads it to tell a too-small buffer from a frame the device flagged as bad.
-    /// Provisional name.
-    pub dropped_for_lack_of_room: u32,
+    dropped: u32,
+    dropped_for_lack_of_room: u32,
 }
 
 impl DataPlane {
@@ -123,6 +116,21 @@ impl DataPlane {
             dropped: 0,
             dropped_for_lack_of_room: 0,
         }
+    }
+
+    /// A running count of the frames the device wrote that [`DataPlane::receive`] did not
+    /// deliver to the caller, for any reason. It wraps at `u32::MAX`. A caller reads it to see
+    /// loss that the receive path otherwise absorbs.
+    pub fn dropped(&self) -> u32 {
+        self.dropped
+    }
+
+    /// Of [`DataPlane::dropped`], a running count of the frames that were good but longer than
+    /// the room the caller gave that [`DataPlane::receive`] call. It wraps at `u32::MAX`. A
+    /// caller reads it to tell a too-small buffer from a frame the device flagged as bad.
+    /// Provisional name.
+    pub fn dropped_for_lack_of_room(&self) -> u32 {
+        self.dropped_for_lack_of_room
     }
 
     /// The receive descriptor the next [`DataPlane::receive`] looks at, for a caller that wants to

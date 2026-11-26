@@ -5,6 +5,9 @@ sentence beside it.
 
 ## Unreleased
 
+- Breaking: `DataPlane`'s two counters are private, read through `DataPlane::dropped()` and
+  `DataPlane::dropped_for_lack_of_room()`, so a caller can no longer write them and the counts
+  can move without breaking a caller.
 - The manifest names its documentation, docs.rs.
 
 ## 0.1.0-pre.4

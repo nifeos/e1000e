@@ -173,7 +173,7 @@ fn frames_arrive_in_order_across_many_laps_of_the_ring() {
             None
         );
     }
-    assert_eq!(data_plane.dropped, 0);
+    assert_eq!(data_plane.dropped(), 0);
 }
 
 #[test]
@@ -214,7 +214,7 @@ fn a_lying_or_bad_descriptor_is_dropped_and_the_ring_moves_on() {
         Some(99)
     );
     assert_eq!(&out[..99], &f[..]);
-    assert_eq!(data_plane.dropped, 4);
+    assert_eq!(data_plane.dropped(), 4);
 }
 
 #[test]
@@ -226,8 +226,8 @@ fn a_frame_larger_than_the_callers_room_is_dropped_not_truncated() {
         simulator.with(|s, r| data_plane.receive(s, r, &mut small)),
         None
     );
-    assert_eq!(data_plane.dropped, 1);
-    assert_eq!(data_plane.dropped_for_lack_of_room, 1);
+    assert_eq!(data_plane.dropped(), 1);
+    assert_eq!(data_plane.dropped_for_lack_of_room(), 1);
 }
 
 #[test]
@@ -722,7 +722,7 @@ fn receive_returns_after_one_lap_of_frames_it_does_not_deliver() {
     let mut out = [0u8; MAXIMUM_FRAME_BYTES];
     for call in 1..=3u32 {
         assert_eq!(data_plane.receive(&mut device, &mut tails, &mut out), None);
-        assert_eq!(data_plane.dropped, call * u32::from(RECEIVE_ENTRIES));
+        assert_eq!(data_plane.dropped(), call * u32::from(RECEIVE_ENTRIES));
         assert_eq!(device.refills, u64::from(call) * u64::from(RECEIVE_ENTRIES));
     }
 }
@@ -759,8 +759,8 @@ fn a_frame_of_the_largest_size_with_a_vlan_tag_goes_both_ways() {
         simulator.with(|s, r| data_plane.receive(s, r, &mut out)),
         None
     );
-    assert_eq!(data_plane.dropped, 1);
-    assert_eq!(data_plane.dropped_for_lack_of_room, 0);
+    assert_eq!(data_plane.dropped(), 1);
+    assert_eq!(data_plane.dropped_for_lack_of_room(), 0);
 }
 
 #[test]
@@ -774,8 +774,8 @@ fn a_caller_buffer_too_small_is_counted_apart_from_a_bad_frame() {
         simulator.with(|s, r| data_plane.receive(s, r, &mut small)),
         None
     );
-    assert_eq!(data_plane.dropped, 3);
-    assert_eq!(data_plane.dropped_for_lack_of_room, 1);
+    assert_eq!(data_plane.dropped(), 3);
+    assert_eq!(data_plane.dropped_for_lack_of_room(), 1);
 }
 
 /// Tails that keep the newest receive tail back instead of storing it, as [`Tails`] allows.
@@ -837,5 +837,5 @@ fn a_receive_tail_held_back_to_one_store_per_burst_hands_back_every_slot() {
         // The one store the burst makes: the newest value hands back every slot at once.
         simulator.receive_tail = tails.held.expect("receive named no tail");
     }
-    assert_eq!(data_plane.dropped, 0);
+    assert_eq!(data_plane.dropped(), 0);
 }

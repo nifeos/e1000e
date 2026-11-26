@@ -405,8 +405,8 @@ fuzz_target!(|data: &[u8]| {
                 let sentinel = operation;
                 out.fill(sentinel);
                 let cursor_before = data_plane.receive_cursor();
-                let dropped_before = data_plane.dropped;
-                let dropped_for_room_before = data_plane.dropped_for_lack_of_room;
+                let dropped_before = data_plane.dropped();
+                let dropped_for_room_before = data_plane.dropped_for_lack_of_room();
                 device.events.borrow_mut().clear();
                 let got = data_plane.receive(
                     &mut Region(&device),
@@ -420,9 +420,9 @@ fuzz_target!(|data: &[u8]| {
                     data_plane.receive_cursor(),
                     room,
                     got,
-                    data_plane.dropped.wrapping_sub(dropped_before),
+                    data_plane.dropped().wrapping_sub(dropped_before),
                     data_plane
-                        .dropped_for_lack_of_room
+                        .dropped_for_lack_of_room()
                         .wrapping_sub(dropped_for_room_before),
                 );
                 let length = got.unwrap_or(0);
