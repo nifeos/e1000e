@@ -1,0 +1,29 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace is_reset_blocked -> bool with true
+@@ -490,25 +490,17 @@
+ ) -> Result<(), Error> {
+     let v = read(hardware, held, offset)?;
+     write(hardware, held, offset, change(v))
+ }
+ 
+ /// `e1000_check_reset_block_ich8lan`: is firmware blocking a PHY reset? Polls `FWSM.RSPCIPHY` up to
+ /// 31 times 10 ms apart, as FreeBSD does.
+ pub(crate) fn is_reset_blocked(hardware: &mut impl Hardware) -> bool {
+-    for i in 0..=30 {
+-        if hardware.read(super::registers::FIRMWARE_SEMAPHORE_REGISTER) & ICH_FWSM_RSPCIPHY != 0 {
+-            return false;
+-        }
+-        if i < 30 {
+-            hardware.delay_microseconds(10_000);
+-        }
+-    }
+-    true
++    true /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ // The high word sits at bit 16 and the low one is a u16, so | and ^ compose the identifier
+ // identically; the compiler checks that here, so the function's
+ // OR-to-XOR swap is an equivalent mutant.
+ #[allow(clippy::eq_op, clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
+ const _: () = assert!(((u16::MAX as u32) << 16) & (u16::MAX as u32) == 0);
+ 

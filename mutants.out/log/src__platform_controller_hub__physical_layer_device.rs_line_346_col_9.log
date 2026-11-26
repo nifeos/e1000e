@@ -1,0 +1,101 @@
+
+*** src/platform_controller_hub/physical_layer_device.rs:346:9: replace SoftwareFlag::acquire -> Result<Self, Error> with Ok(Default::default())
+
+*** mutation diff:
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace SoftwareFlag::acquire -> Result<Self, Error> with Ok(Default::default())
+@@ -338,48 +338,17 @@
+ #[derive(Debug)]
+ #[must_use = "a held SWFLAG locks the Management Engine out of the PHY until it is released"]
+ pub struct SoftwareFlag(());
+ 
+ impl SoftwareFlag {
+     /// `e1000_acquire_swflag_ich8lan`: wait for the flag to be free, set it, and wait for it to
+     /// read back set. On a refusal it clears the bit it wrote, as FreeBSD does.
+     pub fn acquire(hardware: &mut impl Hardware) -> Result<Self, Error> {
+-        let mut extended_control = 0;
+-        let mut free = false;
+-        for _ in 0..SOFTWARE_FLAG_FREE_MILLISECONDS {
+-            extended_control =
+-                hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+-            if extended_control & EXTCNF_CTRL_SWFLAG == 0 {
+-                free = true;
+-                break;
+-            }
+-            hardware.delay_microseconds(1000);
+-        }
+-        if !free {
+-            return Err(Error::SoftwareFlagHeld);
+-        }
+-        extended_control |= EXTCNF_CTRL_SWFLAG;
+-        hardware.write(
+-            super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+-            extended_control,
+-        );
+-        for _ in 0..SOFTWARE_FLAG_TAKE_MILLISECONDS {
+-            extended_control =
+-                hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+-            if extended_control & EXTCNF_CTRL_SWFLAG != 0 {
+-                return Ok(SoftwareFlag(()));
+-            }
+-            hardware.delay_microseconds(1000);
+-        }
+-        hardware.write(
+-            super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+-            extended_control & !EXTCNF_CTRL_SWFLAG,
+-        );
+-        Err(Error::SoftwareFlagRefused)
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// `e1000_release_swflag_ich8lan`. Clears the bit only if it is still set; FreeBSD logs the
+     /// other case ("Semaphore unexpectedly released") and so does nothing here.
+     pub fn release(self, hardware: &mut impl Hardware) {
+         let extended_control =
+             hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+         if extended_control & EXTCNF_CTRL_SWFLAG != 0 {
+
+
+*** /home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo test --no-run --verbose --package=e1000e@0.1.0-pre.4
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+       Dirty e1000e v0.1.0-pre.4 (/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp): the file `src/platform_controller_hub/physical_layer_device.rs` has changed (1795681130.466878239s, 1s after last build at 1795681129.439867375s)
+   Compiling e1000e v0.1.0-pre.4 (/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp)
+     Running `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=db4e79245faea609 -C extra-filename=-b71a74e0b81155b6 --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/build/e1000e/b71a74e0b81155b6/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/incremental --force-warn=unused_crate_dependencies`
+     Running `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=686eaccdbd4cab3b -C extra-filename=-01b2f2f3b25c027d --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/build/e1000e/01b2f2f3b25c027d/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/incremental --force-warn=unused_crate_dependencies`
+error[E0277]: the trait bound `SoftwareFlag: Default` is not satisfied
+   --> src/platform_controller_hub/physical_layer_device.rs:346:12
+    |
+346 |         Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+    |            ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `SoftwareFlag`
+    |
+help: consider annotating `SoftwareFlag` with `#[derive(Default)]`
+    |
+340 + #[derive(Default)]
+341 | pub struct SoftwareFlag(());
+    |
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `e1000e` (lib) due to 1 previous error
+
+Caused by:
+  process didn't exit successfully: `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=686eaccdbd4cab3b -C extra-filename=-01b2f2f3b25c027d --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/build/e1000e/01b2f2f3b25c027d/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/incremental --force-warn=unused_crate_dependencies` (exit status: 1)
+warning: build failed, waiting for other jobs to finish...
+error[E0277]: the trait bound `platform_controller_hub::physical_layer_device::SoftwareFlag: Default` is not satisfied
+   --> src/platform_controller_hub/physical_layer_device.rs:346:12
+    |
+346 |         Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+    |            ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `platform_controller_hub::physical_layer_device::SoftwareFlag`
+    |
+help: consider annotating `platform_controller_hub::physical_layer_device::SoftwareFlag` with `#[derive(Default)]`
+    |
+340 + #[derive(Default)]
+341 | pub struct SoftwareFlag(());
+    |
+
+error: could not compile `e1000e` (lib test) due to 1 previous error
+
+Caused by:
+  process didn't exit successfully: `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=db4e79245faea609 -C extra-filename=-b71a74e0b81155b6 --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/build/e1000e/b71a74e0b81155b6/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/incremental --force-warn=unused_crate_dependencies` (exit status: 1)
+
+*** result: Failure(101)

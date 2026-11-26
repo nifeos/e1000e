@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace & with | in complete
+@@ -309,17 +309,17 @@
+ }
+ 
+ /// Poll `MDIC` for the transaction's end and judge it, the half both FreeBSD functions share.
+ fn complete(hardware: &mut impl Hardware, register: u32) -> Result<u32, Error> {
+     let mut v = 0;
+     for _ in 0..management_data_interface_control::MAXIMUM_POLLS {
+         hardware.delay_microseconds(management_data_interface_control::POLL_MICROSECONDS);
+         v = hardware.read(super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER);
+-        if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY != 0 {
++        if v | /* ~ changed by cargo-mutants ~ */ management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY != 0 {
+             break;
+         }
+     }
+     if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY == 0 {
+         Err(Error::NotReady)
+     } else if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_ERROR != 0 {
+         Err(Error::ManagementDataInterface)
+     } else if (v & management_data_interface_control::REGISTER_MASK)

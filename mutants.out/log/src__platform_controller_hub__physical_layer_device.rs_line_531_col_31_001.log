@@ -1,0 +1,140 @@
+
+*** src/platform_controller_hub/physical_layer_device.rs:531:31: replace | with ^ in read_identifier_at_device_number
+
+*** mutation diff:
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace | with ^ in read_identifier_at_device_number
+@@ -523,17 +523,17 @@
+         physical_layer_device_number,
+         registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER,
+     )?;
+     let low = read_management_data_io(
+         hardware,
+         physical_layer_device_number,
+         registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER,
+     )?;
+-    Ok((u32::from(high) << 16 | u32::from(low)) & PHYSICAL_LAYER_DEVICE_REVISION_MASK)
++    Ok((u32::from(high) << 16 ^ /* ~ changed by cargo-mutants ~ */ u32::from(low)) & PHYSICAL_LAYER_DEVICE_REVISION_MASK)
+ }
+ 
+ #[cfg(kani)]
+ mod proofs {
+     use super::*;
+ 
+     /// Falsification: replayable `falsifications/platform_controller_hub.physical_layer_device.proofs.a_paged_access_selects_the_offsets_own_page_and_register.patch`
+     /// **Every paged access this port will make names a PHY number, a position on the management bus, that exists (1 or 2), a
+
+
+*** /home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo test --no-run --verbose --package=e1000e@0.1.0-pre.4
+       Dirty e1000e v0.1.0-pre.4 (/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp): the file `src/platform_controller_hub/physical_layer_device.rs` has changed (1795681156.720155969s, 1s after last build at 1795681155.878147062s)
+   Compiling e1000e v0.1.0-pre.4 (/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp)
+     Running `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=db4e79245faea609 -C extra-filename=-b71a74e0b81155b6 --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/build/e1000e/b71a74e0b81155b6/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/incremental --force-warn=unused_crate_dependencies`
+     Running `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=686eaccdbd4cab3b -C extra-filename=-01b2f2f3b25c027d --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/build/e1000e/01b2f2f3b25c027d/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/incremental --force-warn=unused_crate_dependencies`
+     Running `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name host_ring --edition=2024 examples/host_ring.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=7df942e7e682b0e1 --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/build/e1000e/64f5dbdbfaf15875/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/incremental --extern e1000e=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/build/e1000e/01b2f2f3b25c027d/out/libe1000e-01b2f2f3b25c027d.rlib --force-warn=unused_crate_dependencies`
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.50s
+  Executable `/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/build/e1000e/b71a74e0b81155b6/out/e1000e-b71a74e0b81155b6`
+
+*** result: Success
+
+*** /home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo test --verbose --package=e1000e@0.1.0-pre.4
+       Fresh e1000e v0.1.0-pre.4 (/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running `/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/build/e1000e/b71a74e0b81155b6/out/e1000e-b71a74e0b81155b6`
+
+running 81 tests
+test platform_controller_hub::sequence::tests::a_configuration_that_never_completes_is_reported_after_its_wait ... ok
+test platform_controller_hub::sequence::tests::errors_say_what_failed_and_name_the_error_inside ... ok
+test platform_controller_hub::sequence::tests::initialize_hardware_writes_freebsds_values_over_bits_already_set ... ok
+test platform_controller_hub::sequence::tests::initialize_hardware_writes_freebsds_values_from_an_empty_device ... ok
+test platform_controller_hub::sequence::tests::the_lanphypc_toggle_moves_only_its_own_bits_and_waits_for_lpcd ... ok
+test platform_controller_hub::sequence::tests::leaving_ulp_without_a_management_engine_changes_only_the_bits_it_names ... ok
+test platform_controller_hub::sequence::tests::the_post_reset_clears_host_wakeup_and_replays_only_when_asked ... ok
+test platform_controller_hub::simulator::tests::a_dead_physical_layer_device_is_power_cycled_unless_firmware_forbids_it ... ok
+test platform_controller_hub::sequence::tests::stuck_master_requests_are_waited_for_and_the_reset_still_goes_ahead ... ok
+test platform_controller_hub::sequence::tests::the_system_management_bus_address_comes_from_strap ... ok
+test platform_controller_hub::sequence::tests::the_management_engine_gets_two_and_a_half_seconds_to_leave_ulp ... ok
+test platform_controller_hub::simulator::tests::a_failed_flash_cycle_is_retried_and_gives_up_after_freebsds_count ... ok
+test platform_controller_hub::sequence::tests::the_oem_bits_follow_the_mac ... ok
+test platform_controller_hub::simulator::tests::a_flash_read_is_one_four_byte_cycle_on_the_flash_registers_alone ... ok
+test platform_controller_hub::sequence::tests::the_transmit_errata_set_freebsds_three_values ... ok
+test platform_controller_hub::simulator::tests::a_known_identifier_is_accessible_when_the_probe_answers_and_not_otherwise ... ok
+test platform_controller_hub::simulator::tests::a_missing_non_volatile_memory_fails_the_physical_layer_device_reset_as_freebsd_does ... ok
+test platform_controller_hub::simulator::tests::a_paged_register_is_reached_through_a_page_select_at_device_number_one ... ok
+test platform_controller_hub::simulator::tests::a_physical_layer_device_left_in_system_management_bus_mode_is_reached_by_forcing_the_mac ... ok
+test platform_controller_hub::simulator::tests::a_running_cycle_is_waited_out_and_its_status_cleared ... ok
+test platform_controller_hub::simulator::tests::a_reset_block_is_polled_for_three_hundred_milliseconds ... ok
+test platform_controller_hub::simulator::tests::a_slow_flash_cycle_is_waited_for ... ok
+test platform_controller_hub::simulator::tests::an_idle_flash_starts_its_cycle_without_polling ... ok
+test platform_controller_hub::simulator::tests::a_word_is_read_from_either_half_of_its_u32 ... ok
+test platform_controller_hub::simulator::tests::neither_bank_valid_is_reported_and_a_word_read_falls_back_to_bank_zero ... ok
+test platform_controller_hub::simulator::tests::mdic_failures_are_told_apart ... ok
+test platform_controller_hub::simulator::tests::the_copper_link_advertises_every_speed_without_pause_and_restarts_autonegotiation ... ok
+test platform_controller_hub::simulator::tests::stale_flash_errors_are_cleared_before_the_cycle ... ok
+test platform_controller_hub::simulator::tests::the_flash_register_bits_are_the_ich8_unions ... ok
+test platform_controller_hub::simulator::tests::the_last_register_and_the_last_page_are_reachable_and_one_past_is_not ... ok
+test platform_controller_hub::simulator::tests::the_control_word_keeps_the_opcode_under_a_wide_device_number ... ok
+test platform_controller_hub::simulator::tests::the_global_reset_takes_the_physical_layer_device_with_it_only_when_firmware_allows ... ok
+test platform_controller_hub::simulator::tests::the_non_volatile_memory_size_comes_from_strap_bits_five_to_one ... ok
+test platform_controller_hub::simulator::tests::the_physical_layer_device_id_is_both_words_without_the_revision ... ok
+test platform_controller_hub::simulator::tests::the_non_volatile_memory_configuration_region_is_replayed_into_the_physical_layer_device_from_the_valid_bank ... ok
+test platform_controller_hub::simulator::tests::with_a_management_engine_and_a_healthy_physical_layer_device_it_is_reached_at_once_and_reset ... ok
+test platform_controller_hub::tests::the_flush_and_management_bits_are_the_numbers_the_sources_write ... ok
+test platform_controller_hub::tests::a_delay_is_in_milliseconds_and_a_flush_reads_status ... ok
+test platform_controller_hub::simulator::tests::without_a_management_engine_ulp_is_left_by_physical_layer_device_registers ... ok
+test platform_controller_hub::tests::the_flush_refuses_a_transmit_ring_of_another_length ... ok
+test platform_controller_hub::simulator::tests::the_semaphore_refused_by_firmware_is_left_clear_and_a_stuck_one_is_reported ... ok
+test platform_controller_hub::tests::the_flush_runs_only_when_asked_and_the_ring_has_length ... ok
+test platform_controller_hub::simulator::tests::the_semaphore_touches_only_its_own_bit ... ok
+test platform_controller_hub::tests::the_flush_runs_both_rings_in_freebsds_order ... ok
+test platform_controller_hub::tests::the_flush_refuses_a_transmit_ring_that_is_not_the_callers ... ok
+test platform_controller_hub::tests::the_flush_values_are_freebsds ... ok
+test platform_controller_hub::tests::the_flush_stops_after_the_transmit_ring_when_the_request_clears ... ok
+test platform_controller_hub::tests::the_flush_without_a_request_only_disables_the_mulr_fix ... ok
+test platform_controller_hub::tests::the_ulp_handshake_changes_only_its_own_bits ... ok
+test platform_controller_hub::tests::the_pch_class_is_every_claimed_i219_and_not_qemus_part ... ok
+test platform_controller_hub::tests::the_ulp_request_clears_the_indication_and_enforces ... ok
+test tests::a_frame_larger_than_the_callers_room_is_dropped_not_truncated ... ok
+test tests::a_device_that_overwrote_the_buffer_physical_address_gets_it_back_on_repost ... ok
+test tests::a_caller_buffer_too_small_is_counted_apart_from_a_bad_frame ... ok
+test tests::a_frame_of_the_largest_size_with_a_vlan_tag_goes_both_ways ... ok
+test tests::a_lying_or_bad_descriptor_is_dropped_and_the_ring_moves_on ... ok
+test tests::a_full_ring_holds_all_but_one_and_drains_completely ... ok
+test tests::a_region_running_past_the_top_of_physical_memory_is_refused ... ok
+test tests::every_frame_error_bit_drops_the_frame ... ok
+test tests::ring_slots_are_distinct_evenly_spaced_and_wrap ... ok
+test tests::start_clears_the_transmit_ring_and_the_cursor_follows_receive ... ok
+test tests::one_sent_descriptor_frees_exactly_one_slot ... ok
+test tests::frames_arrive_in_order_across_many_laps_of_the_ring ... ok
+test tests::a_receive_tail_held_back_to_one_store_per_burst_hands_back_every_slot ... ok
+test tests::receive_returns_after_one_lap_of_frames_it_does_not_deliver ... ok
+test tests::start_posts_every_receive_buffer_but_one_and_names_only_its_own_buffers ... ok
+test tests::the_claimed_ids_are_intel_and_qemus_is_among_them ... ok
+test tests::the_control_bits_are_the_numbers_openbsd_writes ... ok
+test tests::the_control_words_are_linuxs_values_exactly ... ok
+test tests::the_control_words_carry_the_bits_the_device_needs ... ok
+test tests::the_descriptor_status_bits_are_the_numbers_openbsd_writes ... ok
+test tests::the_interrupt_registers_and_cause_bits_sit_where_the_sources_put_them ... ok
+test tests::the_layout_fits_its_pages_and_the_rings_fit_theirs ... ok
+test tests::the_queue_pages_hold_the_tails_and_not_the_control_registers ... ok
+test tests::the_station_mac_address_reads_from_entry_zero_and_refuses_an_invalid_one ... ok
+test tests::transmit_errors_say_which_limit_was_hit ... ok
+test tests::the_transmit_command_is_end_of_packet_frame_check_sequence_and_report_status ... ok
+test tests::transmit_refuses_empty_and_oversized_frames ... ok
+test tests::transmit_sends_exact_bytes_and_reports_full_until_the_device_catches_up ... ok
+test platform_controller_hub::simulator::tests::a_flash_cycle_that_never_ends_fails_once_and_is_not_retried ... ok
+test platform_controller_hub::simulator::tests::a_flash_cycle_already_running_is_waited_out_and_one_that_never_ends_is_busy ... ok
+
+test result: ok. 81 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+   Doc-tests e1000e
+     Running `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustdoc --edition=2024 --crate-type lib --color auto --crate-name e1000e --test src/lib.rs --test-run-directory /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --extern e1000e=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-D7VhNy.tmp/target/debug/build/e1000e/01b2f2f3b25c027d/out/libe1000e-01b2f2f3b25c027d.rlib -C embed-bitcode=no --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' --error-format human`
+
+running 2 tests
+test src/descriptor.rs - descriptor::receive_verdict (line 89) ... ok
+test src/../README.md - ReadmeDoctests (line 27) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+all doctests ran in 0.39s; merged doctests compilation took 0.38s
+
+*** result: Success

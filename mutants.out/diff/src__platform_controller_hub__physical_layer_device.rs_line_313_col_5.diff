@@ -1,0 +1,40 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace complete -> Result<u32, Error> with Ok(0)
+@@ -305,36 +305,17 @@
+                 << management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
+             | management_data_interface_control::OPERATION_WRITE,
+     );
+     complete(hardware, register).map(|_| ())
+ }
+ 
+ /// Poll `MDIC` for the transaction's end and judge it, the half both FreeBSD functions share.
+ fn complete(hardware: &mut impl Hardware, register: u32) -> Result<u32, Error> {
+-    let mut v = 0;
+-    for _ in 0..management_data_interface_control::MAXIMUM_POLLS {
+-        hardware.delay_microseconds(management_data_interface_control::POLL_MICROSECONDS);
+-        v = hardware.read(super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER);
+-        if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY != 0 {
+-            break;
+-        }
+-    }
+-    if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY == 0 {
+-        Err(Error::NotReady)
+-    } else if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_ERROR != 0 {
+-        Err(Error::ManagementDataInterface)
+-    } else if (v & management_data_interface_control::REGISTER_MASK)
+-        >> management_data_interface_control::REGISTER_SHIFT
+-        != register
+-    {
+-        Err(Error::WrongRegister)
+-    } else {
+-        Ok(v)
+-    }
++    Ok(0) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// **Proof of holding the software/firmware semaphore** over the PHY and some MAC registers.
+ /// Deliberately not `Clone`: [`SoftwareFlag::release`] consumes it.
+ #[doc(alias = "swflag")]
+ #[derive(Debug)]
+ #[must_use = "a held SWFLAG locks the Management Engine out of the PHY until it is released"]
+ pub struct SoftwareFlag(());

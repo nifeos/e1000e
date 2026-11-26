@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace | with & in write_management_data_io
+@@ -295,17 +295,17 @@
+     data: u16,
+ ) -> Result<(), Error> {
+     if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER {
+         return Err(Error::OutOfRange);
+     }
+     hardware.write(
+         super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER,
+         u32::from(data)
+-            | register << management_data_interface_control::REGISTER_SHIFT
++            & /* ~ changed by cargo-mutants ~ */ register << management_data_interface_control::REGISTER_SHIFT
+             | physical_layer_device_number
+                 << management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
+             | management_data_interface_control::OPERATION_WRITE,
+     );
+     complete(hardware, register).map(|_| ())
+ }
+ 
+ /// Poll `MDIC` for the transaction's end and judge it, the half both FreeBSD functions share.

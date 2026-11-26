@@ -1,0 +1,31 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace <impl core::fmt::Display for Error>::fmt -> core::fmt::Result with Ok(Default::default())
+@@ -71,27 +71,17 @@
+     #[doc(alias = "swflag")]
+     SoftwareFlagRefused,
+     /// A page this port refuses (the module header).
+     PageNotPorted,
+ }
+ 
+ impl core::fmt::Display for Error {
+     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+-        f.write_str(match self {
+-            Error::NotReady => "nothing answered on the management data io bus",
+-            Error::ManagementDataInterface => {
+-                "the management data interface refused the transaction"
+-            }
+-            Error::WrongRegister => "the transaction completed for a different register",
+-            Error::OutOfRange => "the register number is wider than five bits",
+-            Error::SoftwareFlagHeld => "another agent holds the software flag",
+-            Error::SoftwareFlagRefused => "the software flag would not stick",
+-            Error::PageNotPorted => "the page is not ported",
+-        })
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+ 
+ impl core::error::Error for Error {}
+ 
+ /// `MDIC` register bits, from FreeBSD's `e1000_defines.h`.
+ #[doc(alias = "mdic")]
+ pub mod management_data_interface_control {

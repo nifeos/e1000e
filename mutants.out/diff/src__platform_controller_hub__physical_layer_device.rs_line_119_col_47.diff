@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace * with +
+@@ -111,17 +111,17 @@
+     #[doc(alias = "E1000_MDIC_READY")]
+     pub const MANAGEMENT_DATA_IO_TRANSACTION_READY: u32 = 1 << 28;
+     /// **Management data io transaction error** (`E1000_MDIC_ERROR`, OpenBSD's
+     /// `sys/dev/pci/if_em_hw.h` and FreeBSD's `e1000_defines.h`, both `0x40000000`). The transaction
+     /// failed.
+     #[doc(alias = "E1000_MDIC_ERROR")]
+     pub const MANAGEMENT_DATA_IO_TRANSACTION_ERROR: u32 = 1 << 30;
+     /// Polls before giving up: `E1000_GEN_POLL_TIMEOUT * 3`.
+-    pub(crate) const MAXIMUM_POLLS: u32 = 640 * 3;
++    pub(crate) const MAXIMUM_POLLS: u32 = 640 + /* ~ changed by cargo-mutants ~ */ 3;
+     /// Between polls, in microseconds.
+     pub const POLL_MICROSECONDS: u64 = 50;
+ }
+ 
+ /// The highest MDIO register number (`MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER`).
+ pub(crate) const MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER: u32 = 0x1f;
+ /// Registers above this one sit behind a page select (`MAXIMUM_PHYSICAL_LAYER_DEVICE_MULTI_PAGE_REGISTER`).
+ pub(crate) const MAXIMUM_PHYSICAL_LAYER_DEVICE_MULTI_PAGE_REGISTER: u32 = 0xf;

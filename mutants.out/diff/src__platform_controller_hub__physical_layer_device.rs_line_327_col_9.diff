@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace != with == in complete
+@@ -319,17 +319,17 @@
+         }
+     }
+     if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY == 0 {
+         Err(Error::NotReady)
+     } else if v & management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_ERROR != 0 {
+         Err(Error::ManagementDataInterface)
+     } else if (v & management_data_interface_control::REGISTER_MASK)
+         >> management_data_interface_control::REGISTER_SHIFT
+-        != register
++        == /* ~ changed by cargo-mutants ~ */ register
+     {
+         Err(Error::WrongRegister)
+     } else {
+         Ok(v)
+     }
+ }
+ 
+ /// **Proof of holding the software/firmware semaphore** over the PHY and some MAC registers.

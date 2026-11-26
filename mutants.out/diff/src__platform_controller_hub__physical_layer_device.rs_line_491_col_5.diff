@@ -1,0 +1,22 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace update -> Result<(), Error> with Ok(())
+@@ -483,18 +483,17 @@
+ 
+ /// Read-modify-write under a held flag.
+ pub fn update(
+     hardware: &mut impl Hardware,
+     held: &SoftwareFlag,
+     offset: u32,
+     change: impl FnOnce(u16) -> u16,
+ ) -> Result<(), Error> {
+-    let v = read(hardware, held, offset)?;
+-    write(hardware, held, offset, change(v))
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// `e1000_check_reset_block_ich8lan`: is firmware blocking a PHY reset? Polls `FWSM.RSPCIPHY` up to
+ /// 31 times 10 ms apart, as FreeBSD does.
+ pub(crate) fn is_reset_blocked(hardware: &mut impl Hardware) -> bool {
+     for i in 0..=30 {
+         if hardware.read(super::registers::FIRMWARE_SEMAPHORE_REGISTER) & ICH_FWSM_RSPCIPHY != 0 {
+             return false;

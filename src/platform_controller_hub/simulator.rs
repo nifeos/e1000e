@@ -488,6 +488,49 @@ mod tests {
         assert_eq!(m.0, 96_000, "FreeBSD's 96 ms: 1920 polls of 50 us");
     }
 
+    /// The management data io control word is the register at bit 16, the device number at bit 21
+    /// and the opcode, joined by OR. A device number wide enough to reach the opcode bits must not
+    /// cancel them, so the word is checked whole with such a number.
+    #[test]
+    fn the_control_word_keeps_the_opcode_under_a_wide_device_number() {
+        struct Recorder(Vec<u32>);
+        impl Hardware for Recorder {
+            fn read(&mut self, _: u64) -> u32 {
+                0
+            }
+            fn write(&mut self, _: u64, value: u32) {
+                self.0.push(value);
+            }
+            fn read_flash_status(&mut self, _: u64) -> u16 {
+                0
+            }
+            fn delay_microseconds(&mut self, _: u64) {}
+            fn pci_vendor_id(&mut self) -> u16 {
+                0
+            }
+            fn note(&mut self, _: BringUpObservation) {}
+        }
+        let shift = management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT;
+        let register_shift = management_data_interface_control::REGISTER_SHIFT;
+        let device = 0x7f_u32;
+        let mut r = Recorder(Vec::new());
+        // The device never raises READY, so each call fails after writing the word once.
+        let _ = physical_layer_device::read_management_data_io(&mut r, device, 31);
+        let _ = physical_layer_device::write_management_data_io(&mut r, device, 31, 0xffff);
+        assert_eq!(
+            r.0,
+            [
+                31 << register_shift
+                    | device << shift
+                    | management_data_interface_control::OPERATION_READ,
+                0xffff
+                    | 31 << register_shift
+                    | device << shift
+                    | management_data_interface_control::OPERATION_WRITE,
+            ]
+        );
+    }
+
     /// The edges of MDIO's register field and of the pages this port reaches: register 31 is the
     /// last one there is, page `MAXIMUM_PAGE` is the last whose select fits, and register 15 is the
     /// last one reached without a page select.

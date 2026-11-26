@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace & with | in SoftwareFlag::acquire
+@@ -343,17 +343,17 @@
+     /// `e1000_acquire_swflag_ich8lan`: wait for the flag to be free, set it, and wait for it to
+     /// read back set. On a refusal it clears the bit it wrote, as FreeBSD does.
+     pub fn acquire(hardware: &mut impl Hardware) -> Result<Self, Error> {
+         let mut extended_control = 0;
+         let mut free = false;
+         for _ in 0..SOFTWARE_FLAG_FREE_MILLISECONDS {
+             extended_control =
+                 hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+-            if extended_control & EXTCNF_CTRL_SWFLAG == 0 {
++            if extended_control | /* ~ changed by cargo-mutants ~ */ EXTCNF_CTRL_SWFLAG == 0 {
+                 free = true;
+                 break;
+             }
+             hardware.delay_microseconds(1000);
+         }
+         if !free {
+             return Err(Error::SoftwareFlagHeld);
+         }

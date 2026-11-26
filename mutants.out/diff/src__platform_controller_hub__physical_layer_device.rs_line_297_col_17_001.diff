@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace > with < in write_management_data_io
+@@ -289,17 +289,17 @@
+ #[doc(alias = "mdic")]
+ #[doc(alias = "e1000_write_phy_reg_mdic")]
+ pub fn write_management_data_io(
+     hardware: &mut impl Hardware,
+     physical_layer_device_number: u32,
+     register: u32,
+     data: u16,
+ ) -> Result<(), Error> {
+-    if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER {
++    if register < /* ~ changed by cargo-mutants ~ */ MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER {
+         return Err(Error::OutOfRange);
+     }
+     hardware.write(
+         super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER,
+         u32::from(data)
+             | register << management_data_interface_control::REGISTER_SHIFT
+             | physical_layer_device_number
+                 << management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT

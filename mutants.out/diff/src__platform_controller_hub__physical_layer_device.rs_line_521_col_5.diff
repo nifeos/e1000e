@@ -1,0 +1,31 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace read_identifier_at_device_number -> Result<u32, Error> with Ok(0)
+@@ -513,27 +513,17 @@
+ const _: () = assert!(((u16::MAX as u32) << 16) & (u16::MAX as u32) == 0);
+ 
+ /// Read the PHY identifier at the 82574L's address, the generic MDIO path with no pages and no
+ /// semaphore (the 82574L has neither). What QEMU's gates prove of this module.
+ pub fn read_identifier_at_device_number(
+     hardware: &mut impl Hardware,
+     physical_layer_device_number: u32,
+ ) -> Result<u32, Error> {
+-    let high = read_management_data_io(
+-        hardware,
+-        physical_layer_device_number,
+-        registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER,
+-    )?;
+-    let low = read_management_data_io(
+-        hardware,
+-        physical_layer_device_number,
+-        registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER,
+-    )?;
+-    Ok((u32::from(high) << 16 | u32::from(low)) & PHYSICAL_LAYER_DEVICE_REVISION_MASK)
++    Ok(0) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ #[cfg(kani)]
+ mod proofs {
+     use super::*;
+ 
+     /// Falsification: replayable `falsifications/platform_controller_hub.physical_layer_device.proofs.a_paged_access_selects_the_offsets_own_page_and_register.patch`
+     /// **Every paged access this port will make names a PHY number, a position on the management bus, that exists (1 or 2), a

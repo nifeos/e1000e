@@ -1,0 +1,106 @@
+src/platform_controller_hub/physical_layer_device.rs:79:9: replace <impl core::fmt::Display for Error>::fmt -> core::fmt::Result with Ok(Default::default())
+src/platform_controller_hub/physical_layer_device.rs:112:61: replace << with >>
+src/platform_controller_hub/physical_layer_device.rs:117:61: replace << with >>
+src/platform_controller_hub/physical_layer_device.rs:119:47: replace * with +
+src/platform_controller_hub/physical_layer_device.rs:119:47: replace * with /
+src/platform_controller_hub/physical_layer_device.rs:159:5: replace paged_offset -> u32 with 0
+src/platform_controller_hub/physical_layer_device.rs:159:5: replace paged_offset -> u32 with 1
+src/platform_controller_hub/physical_layer_device.rs:160:9: replace | with & in paged_offset
+src/platform_controller_hub/physical_layer_device.rs:159:10: replace << with >> in paged_offset
+src/platform_controller_hub/physical_layer_device.rs:160:21: replace & with | in paged_offset
+src/platform_controller_hub/physical_layer_device.rs:160:21: replace & with ^ in paged_offset
+src/platform_controller_hub/physical_layer_device.rs:274:5: replace read_management_data_io -> Result<u16, Error> with Ok(1)
+src/platform_controller_hub/physical_layer_device.rs:274:5: replace read_management_data_io -> Result<u16, Error> with Ok(0)
+src/platform_controller_hub/physical_layer_device.rs:274:17: replace > with == in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:274:17: replace > with < in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:274:17: replace > with >= in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:282:13: replace | with & in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:282:13: replace | with ^ in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:280:13: replace | with & in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:279:18: replace << with >> in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:281:17: replace << with >> in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:297:5: replace write_management_data_io -> Result<(), Error> with Ok(())
+src/platform_controller_hub/physical_layer_device.rs:297:17: replace > with == in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:297:17: replace > with < in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:297:17: replace > with >= in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:306:13: replace | with & in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:306:13: replace | with ^ in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:304:13: replace | with & in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:303:13: replace | with & in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:303:24: replace << with >> in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:305:17: replace << with >> in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:313:5: replace complete -> Result<u32, Error> with Ok(0)
+src/platform_controller_hub/physical_layer_device.rs:313:5: replace complete -> Result<u32, Error> with Ok(1)
+src/platform_controller_hub/physical_layer_device.rs:317:88: replace != with == in complete
+src/platform_controller_hub/physical_layer_device.rs:317:14: replace & with | in complete
+src/platform_controller_hub/physical_layer_device.rs:317:14: replace & with ^ in complete
+src/platform_controller_hub/physical_layer_device.rs:321:84: replace == with != in complete
+src/platform_controller_hub/physical_layer_device.rs:321:10: replace & with | in complete
+src/platform_controller_hub/physical_layer_device.rs:321:10: replace & with ^ in complete
+src/platform_controller_hub/physical_layer_device.rs:323:91: replace != with == in complete
+src/platform_controller_hub/physical_layer_device.rs:323:17: replace & with | in complete
+src/platform_controller_hub/physical_layer_device.rs:323:17: replace & with ^ in complete
+src/platform_controller_hub/physical_layer_device.rs:327:9: replace != with == in complete
+src/platform_controller_hub/physical_layer_device.rs:326:9: replace >> with << in complete
+src/platform_controller_hub/physical_layer_device.rs:325:18: replace & with ^ in complete
+src/platform_controller_hub/physical_layer_device.rs:325:18: replace & with | in complete
+src/platform_controller_hub/physical_layer_device.rs:351:54: replace == with != in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:351:33: replace & with | in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:351:33: replace & with ^ in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:357:12: delete ! in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:360:26: replace |= with &= in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:368:54: replace != with == in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:368:33: replace & with | in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:368:33: replace & with ^ in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:375:30: replace & with | in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:375:30: replace & with ^ in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:375:32: delete ! in SoftwareFlag::acquire
+src/platform_controller_hub/physical_layer_device.rs:383:9: replace SoftwareFlag::release with ()
+src/platform_controller_hub/physical_layer_device.rs:385:50: replace != with == in SoftwareFlag::release
+src/platform_controller_hub/physical_layer_device.rs:385:29: replace & with | in SoftwareFlag::release
+src/platform_controller_hub/physical_layer_device.rs:385:29: replace & with ^ in SoftwareFlag::release
+src/platform_controller_hub/physical_layer_device.rs:388:34: replace & with | in SoftwareFlag::release
+src/platform_controller_hub/physical_layer_device.rs:388:34: replace & with ^ in SoftwareFlag::release
+src/platform_controller_hub/physical_layer_device.rs:388:36: delete ! in SoftwareFlag::release
+src/platform_controller_hub/physical_layer_device.rs:401:5: replace physical_layer_device_number_for -> u32 with 0
+src/platform_controller_hub/physical_layer_device.rs:401:5: replace physical_layer_device_number_for -> u32 with 1
+src/platform_controller_hub/physical_layer_device.rs:401:13: replace >= with < in physical_layer_device_number_for
+src/platform_controller_hub/physical_layer_device.rs:423:23: replace >> with << in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:424:27: replace & with | in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:424:27: replace & with ^ in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:427:9: replace || with && in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:426:9: replace || with && in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:425:13: replace == with != in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:426:22: replace && with || in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:426:18: replace > with == in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:426:18: replace > with < in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:426:18: replace > with >= in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:426:30: replace < with == in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:426:30: replace < with > in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:426:30: replace < with <= in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:427:17: replace > with == in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:427:17: replace > with >= in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:427:17: replace > with < in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:433:25: replace == with != in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:438:30: replace > with == in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:438:30: replace > with < in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:438:30: replace > with >= in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:439:21: replace << with >> in plan_paged_access
+src/platform_controller_hub/physical_layer_device.rs:452:5: replace read -> Result<u16, Error> with Ok(0)
+src/platform_controller_hub/physical_layer_device.rs:452:5: replace read -> Result<u16, Error> with Ok(1)
+src/platform_controller_hub/physical_layer_device.rs:472:5: replace write -> Result<(), Error> with Ok(())
+src/platform_controller_hub/physical_layer_device.rs:491:5: replace update -> Result<(), Error> with Ok(())
+src/platform_controller_hub/physical_layer_device.rs:498:5: replace is_reset_blocked -> bool with true
+src/platform_controller_hub/physical_layer_device.rs:498:5: replace is_reset_blocked -> bool with false
+src/platform_controller_hub/physical_layer_device.rs:499:93: replace != with == in is_reset_blocked
+src/platform_controller_hub/physical_layer_device.rs:499:73: replace & with | in is_reset_blocked
+src/platform_controller_hub/physical_layer_device.rs:499:73: replace & with ^ in is_reset_blocked
+src/platform_controller_hub/physical_layer_device.rs:502:14: replace < with == in is_reset_blocked
+src/platform_controller_hub/physical_layer_device.rs:502:14: replace < with > in is_reset_blocked
+src/platform_controller_hub/physical_layer_device.rs:502:14: replace < with <= in is_reset_blocked
+src/platform_controller_hub/physical_layer_device.rs:521:5: replace read_identifier_at_device_number -> Result<u32, Error> with Ok(0)
+src/platform_controller_hub/physical_layer_device.rs:521:5: replace read_identifier_at_device_number -> Result<u32, Error> with Ok(1)
+src/platform_controller_hub/physical_layer_device.rs:531:49: replace & with | in read_identifier_at_device_number
+src/platform_controller_hub/physical_layer_device.rs:531:49: replace & with ^ in read_identifier_at_device_number
+src/platform_controller_hub/physical_layer_device.rs:531:31: replace | with & in read_identifier_at_device_number
+src/platform_controller_hub/physical_layer_device.rs:531:25: replace << with >> in read_identifier_at_device_number

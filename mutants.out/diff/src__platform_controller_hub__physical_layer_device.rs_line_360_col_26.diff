@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace |= with &= in SoftwareFlag::acquire
+@@ -352,17 +352,17 @@
+                 free = true;
+                 break;
+             }
+             hardware.delay_microseconds(1000);
+         }
+         if !free {
+             return Err(Error::SoftwareFlagHeld);
+         }
+-        extended_control |= EXTCNF_CTRL_SWFLAG;
++        extended_control &= /* ~ changed by cargo-mutants ~ */ EXTCNF_CTRL_SWFLAG;
+         hardware.write(
+             super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+             extended_control,
+         );
+         for _ in 0..SOFTWARE_FLAG_TAKE_MILLISECONDS {
+             extended_control =
+                 hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+             if extended_control & EXTCNF_CTRL_SWFLAG != 0 {

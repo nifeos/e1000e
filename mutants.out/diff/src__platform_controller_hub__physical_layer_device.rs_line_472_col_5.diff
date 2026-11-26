@@ -1,0 +1,30 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace write -> Result<(), Error> with Ok(())
+@@ -464,26 +464,17 @@
+ /// Write a PCH PHY register by its paged offset. FreeBSD's 82578 power-down workaround in the
+ /// write path is not carried: no part this crate claims has that PHY.
+ pub fn write(
+     hardware: &mut impl Hardware,
+     _held: &SoftwareFlag,
+     offset: u32,
+     data: u16,
+ ) -> Result<(), Error> {
+-    let p = plan_paged_access(offset)?;
+-    if let Some(sel) = p.select {
+-        write_management_data_io(
+-            hardware,
+-            1,
+-            IGP01E1000_PHYSICAL_LAYER_DEVICE_PAGE_SELECT,
+-            sel,
+-        )?;
+-    }
+-    write_management_data_io(hardware, p.physical_layer_device_number, p.register, data)
++    Ok(()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Read-modify-write under a held flag.
+ pub fn update(
+     hardware: &mut impl Hardware,
+     held: &SoftwareFlag,
+     offset: u32,
+     change: impl FnOnce(u16) -> u16,

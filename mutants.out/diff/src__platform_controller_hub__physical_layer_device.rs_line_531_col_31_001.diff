@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace | with ^ in read_identifier_at_device_number
+@@ -523,17 +523,17 @@
+         physical_layer_device_number,
+         registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_1_REGISTER,
+     )?;
+     let low = read_management_data_io(
+         hardware,
+         physical_layer_device_number,
+         registers::PHYSICAL_LAYER_DEVICE_IDENTIFIER_WORD_2_REGISTER,
+     )?;
+-    Ok((u32::from(high) << 16 | u32::from(low)) & PHYSICAL_LAYER_DEVICE_REVISION_MASK)
++    Ok((u32::from(high) << 16 ^ /* ~ changed by cargo-mutants ~ */ u32::from(low)) & PHYSICAL_LAYER_DEVICE_REVISION_MASK)
+ }
+ 
+ #[cfg(kani)]
+ mod proofs {
+     use super::*;
+ 
+     /// Falsification: replayable `falsifications/platform_controller_hub.physical_layer_device.proofs.a_paged_access_selects_the_offsets_own_page_and_register.patch`
+     /// **Every paged access this port will make names a PHY number, a position on the management bus, that exists (1 or 2), a

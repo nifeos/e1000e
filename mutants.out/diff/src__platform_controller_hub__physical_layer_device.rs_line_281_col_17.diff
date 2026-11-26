@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace << with >> in read_management_data_io
+@@ -273,17 +273,17 @@
+ ) -> Result<u16, Error> {
+     if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER {
+         return Err(Error::OutOfRange);
+     }
+     hardware.write(
+         super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER,
+         register << management_data_interface_control::REGISTER_SHIFT
+             | physical_layer_device_number
+-                << management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
++                >> /* ~ changed by cargo-mutants ~ */ management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
+             | management_data_interface_control::OPERATION_READ,
+     );
+     complete(hardware, register).map(|v| v as u16)
+ }
+ 
+ /// One MDIO write, `e1000_write_phy_reg_mdic`. It goes through the `MDIC` register (the
+ /// management data io control register).
+ #[doc(alias = "mdic")]
