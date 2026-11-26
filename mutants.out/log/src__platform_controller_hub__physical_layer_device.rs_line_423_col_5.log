@@ -1,0 +1,80 @@
+
+*** src/platform_controller_hub/physical_layer_device.rs:423:5: replace plan_paged_access -> Result<PagedAccessPlan, Error> with Ok(Default::default())
+
+*** mutation diff:
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace plan_paged_access -> Result<PagedAccessPlan, Error> with Ok(Default::default())
+@@ -415,41 +415,17 @@
+     pub physical_layer_device_number: u32,
+     /// The five-bit register.
+     pub register: u32,
+ }
+ 
+ /// The decomposition `__e1000_read_phy_reg_hv` and `__e1000_write_phy_reg_hv` share, for the pages
+ /// this port carries. Pure, so it is host-tested and model-checked.
+ pub const fn plan_paged_access(offset: u32) -> Result<PagedAccessPlan, Error> {
+-    let page = offset >> PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
+-    let register = offset & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER;
+-    if page == BM_WUC_PAGE
+-        || (page > 0 && page < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE)
+-        || page > MAXIMUM_PAGE
+-    {
+-        return Err(Error::PageNotPorted);
+-    }
+-    let physical_layer_device_number = physical_layer_device_number_for(page);
+-    // Page 768 is selected as page 0 (FreeBSD: "if (page == HV_INTC_FC_PAGE_START) page = 0").
+-    let shown = if page == FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE {
+-        0
+-    } else {
+-        page
+-    };
+-    let select = if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_MULTI_PAGE_REGISTER {
+-        Some((shown << PHYSICAL_LAYER_DEVICE_PAGE_SHIFT) as u16)
+-    } else {
+-        None
+-    };
+-    Ok(PagedAccessPlan {
+-        select,
+-        physical_layer_device_number,
+-        register,
+-    })
++    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// Read a PCH PHY register by its paged offset ([`paged_offset`]).
+ pub fn read(hardware: &mut impl Hardware, _held: &SoftwareFlag, offset: u32) -> Result<u16, Error> {
+     let p = plan_paged_access(offset)?;
+     if let Some(sel) = p.select {
+         write_management_data_io(
+             hardware,
+
+
+*** /home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo test --no-run --verbose --package=e1000e@0.1.0-pre.4
+       Dirty e1000e v0.1.0-pre.4 (/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp): the file `src/platform_controller_hub/physical_layer_device.rs` has changed (1795681140.068979818s, 1s after last build at 1795681139.184970467s)
+   Compiling e1000e v0.1.0-pre.4 (/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp)
+     Running `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=db4e79245faea609 -C extra-filename=-b71a74e0b81155b6 --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/build/e1000e/b71a74e0b81155b6/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/incremental --force-warn=unused_crate_dependencies`
+     Running `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=686eaccdbd4cab3b -C extra-filename=-01b2f2f3b25c027d --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/build/e1000e/01b2f2f3b25c027d/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/incremental --force-warn=unused_crate_dependencies`
+error[E0277]: the trait bound `PagedAccessPlan: Default` is not satisfied
+   --> src/platform_controller_hub/physical_layer_device.rs:423:8
+    |
+423 |     Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+    |        ^^^^^^^^^^^^^^^^^^ the trait `Default` is not implemented for `PagedAccessPlan`
+    |
+help: consider annotating `PagedAccessPlan` with `#[derive(Default)]`
+    |
+411 + #[derive(Default)]
+412 | pub struct PagedAccessPlan {
+    |
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `e1000e` (lib) due to 1 previous error
+
+Caused by:
+  process didn't exit successfully: `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=686eaccdbd4cab3b -C extra-filename=-01b2f2f3b25c027d --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/build/e1000e/01b2f2f3b25c027d/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/incremental --force-warn=unused_crate_dependencies` (exit status: 1)
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `e1000e` (lib test) due to 1 previous error
+
+Caused by:
+  process didn't exit successfully: `/home/calef/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name e1000e --edition=2024 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat,unused-externs-silent --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --warn=unsafe_op_in_unsafe_fn --warn=unexpected_cfgs '--warn=clippy::undocumented_unsafe_blocks' '--warn=clippy::semicolon_if_nothing_returned' '--warn=clippy::ptr_as_ptr' --warn=missing_docs '--warn=clippy::manual_let_else' '--warn=clippy::doc_markdown' '--warn=clippy::cast_ptr_alignment' --check-cfg 'cfg(kani)' --test --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=db4e79245faea609 -C extra-filename=-b71a74e0b81155b6 --out-dir /home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/build/e1000e/b71a74e0b81155b6/out -C incremental=/home/calef/.cache/tmp/cargo-mutants-mutation-survivors-MPGQEr.tmp/target/debug/incremental --force-warn=unused_crate_dependencies` (exit status: 1)
+
+*** result: Failure(101)

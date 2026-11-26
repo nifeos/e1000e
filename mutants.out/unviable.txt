@@ -1,0 +1,2 @@
+src/platform_controller_hub/physical_layer_device.rs:346:9: replace SoftwareFlag::acquire -> Result<Self, Error> with Ok(Default::default())
+src/platform_controller_hub/physical_layer_device.rs:423:5: replace plan_paged_access -> Result<PagedAccessPlan, Error> with Ok(Default::default())

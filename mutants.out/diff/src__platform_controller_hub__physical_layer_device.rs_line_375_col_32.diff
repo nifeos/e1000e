@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ delete ! in SoftwareFlag::acquire
+@@ -367,17 +367,17 @@
+                 hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+             if extended_control & EXTCNF_CTRL_SWFLAG != 0 {
+                 return Ok(SoftwareFlag(()));
+             }
+             hardware.delay_microseconds(1000);
+         }
+         hardware.write(
+             super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+-            extended_control & !EXTCNF_CTRL_SWFLAG,
++            extended_control &  /* ~ changed by cargo-mutants ~ */EXTCNF_CTRL_SWFLAG,
+         );
+         Err(Error::SoftwareFlagRefused)
+     }
+ 
+     /// `e1000_release_swflag_ich8lan`. Clears the bit only if it is still set; FreeBSD logs the
+     /// other case ("Semaphore unexpectedly released") and so does nothing here.
+     pub fn release(self, hardware: &mut impl Hardware) {
+         let extended_control =

@@ -1,0 +1,5 @@
+src/platform_controller_hub/physical_layer_device.rs:160:9: replace | with ^ in paged_offset
+src/platform_controller_hub/physical_layer_device.rs:280:13: replace | with ^ in read_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:304:13: replace | with ^ in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:303:13: replace | with ^ in write_management_data_io
+src/platform_controller_hub/physical_layer_device.rs:531:31: replace | with ^ in read_identifier_at_device_number

@@ -1,0 +1,52 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace SoftwareFlag::acquire -> Result<Self, Error> with Ok(Default::default())
+@@ -338,48 +338,17 @@
+ #[derive(Debug)]
+ #[must_use = "a held SWFLAG locks the Management Engine out of the PHY until it is released"]
+ pub struct SoftwareFlag(());
+ 
+ impl SoftwareFlag {
+     /// `e1000_acquire_swflag_ich8lan`: wait for the flag to be free, set it, and wait for it to
+     /// read back set. On a refusal it clears the bit it wrote, as FreeBSD does.
+     pub fn acquire(hardware: &mut impl Hardware) -> Result<Self, Error> {
+-        let mut extended_control = 0;
+-        let mut free = false;
+-        for _ in 0..SOFTWARE_FLAG_FREE_MILLISECONDS {
+-            extended_control =
+-                hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+-            if extended_control & EXTCNF_CTRL_SWFLAG == 0 {
+-                free = true;
+-                break;
+-            }
+-            hardware.delay_microseconds(1000);
+-        }
+-        if !free {
+-            return Err(Error::SoftwareFlagHeld);
+-        }
+-        extended_control |= EXTCNF_CTRL_SWFLAG;
+-        hardware.write(
+-            super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+-            extended_control,
+-        );
+-        for _ in 0..SOFTWARE_FLAG_TAKE_MILLISECONDS {
+-            extended_control =
+-                hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+-            if extended_control & EXTCNF_CTRL_SWFLAG != 0 {
+-                return Ok(SoftwareFlag(()));
+-            }
+-            hardware.delay_microseconds(1000);
+-        }
+-        hardware.write(
+-            super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+-            extended_control & !EXTCNF_CTRL_SWFLAG,
+-        );
+-        Err(Error::SoftwareFlagRefused)
++        Ok(Default::default()) /* ~ changed by cargo-mutants ~ */
+     }
+ 
+     /// `e1000_release_swflag_ich8lan`. Clears the bit only if it is still set; FreeBSD logs the
+     /// other case ("Semaphore unexpectedly released") and so does nothing here.
+     pub fn release(self, hardware: &mut impl Hardware) {
+         let extended_control =
+             hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+         if extended_control & EXTCNF_CTRL_SWFLAG != 0 {

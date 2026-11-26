@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace | with & in write_management_data_io
+@@ -298,17 +298,17 @@
+         return Err(Error::OutOfRange);
+     }
+     hardware.write(
+         super::registers::MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER,
+         u32::from(data)
+             | register << management_data_interface_control::REGISTER_SHIFT
+             | physical_layer_device_number
+                 << management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
+-            | management_data_interface_control::OPERATION_WRITE,
++            & /* ~ changed by cargo-mutants ~ */ management_data_interface_control::OPERATION_WRITE,
+     );
+     complete(hardware, register).map(|_| ())
+ }
+ 
+ /// Poll `MDIC` for the transaction's end and judge it, the half both FreeBSD functions share.
+ fn complete(hardware: &mut impl Hardware, register: u32) -> Result<u32, Error> {
+     let mut v = 0;
+     for _ in 0..management_data_interface_control::MAXIMUM_POLLS {

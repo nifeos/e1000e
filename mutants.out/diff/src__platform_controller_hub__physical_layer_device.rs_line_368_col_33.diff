@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace & with | in SoftwareFlag::acquire
+@@ -360,17 +360,17 @@
+         extended_control |= EXTCNF_CTRL_SWFLAG;
+         hardware.write(
+             super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+             extended_control,
+         );
+         for _ in 0..SOFTWARE_FLAG_TAKE_MILLISECONDS {
+             extended_control =
+                 hardware.read(super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER);
+-            if extended_control & EXTCNF_CTRL_SWFLAG != 0 {
++            if extended_control | /* ~ changed by cargo-mutants ~ */ EXTCNF_CTRL_SWFLAG != 0 {
+                 return Ok(SoftwareFlag(()));
+             }
+             hardware.delay_microseconds(1000);
+         }
+         hardware.write(
+             super::registers::EXTENDED_CONFIGURATION_CONTROL_REGISTER,
+             extended_control & !EXTCNF_CTRL_SWFLAG,
+         );

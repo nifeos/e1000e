@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace == with != in plan_paged_access
+@@ -425,17 +425,17 @@
+     if page == BM_WUC_PAGE
+         || (page > 0 && page < FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE)
+         || page > MAXIMUM_PAGE
+     {
+         return Err(Error::PageNotPorted);
+     }
+     let physical_layer_device_number = physical_layer_device_number_for(page);
+     // Page 768 is selected as page 0 (FreeBSD: "if (page == HV_INTC_FC_PAGE_START) page = 0").
+-    let shown = if page == FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE {
++    let shown = if page != /* ~ changed by cargo-mutants ~ */ FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE {
+         0
+     } else {
+         page
+     };
+     let select = if register > MAXIMUM_PHYSICAL_LAYER_DEVICE_MULTI_PAGE_REGISTER {
+         Some((shown << PHYSICAL_LAYER_DEVICE_PAGE_SHIFT) as u16)
+     } else {
+         None

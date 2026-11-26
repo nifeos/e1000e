@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace != with == in is_reset_blocked
+@@ -491,17 +491,17 @@
+     let v = read(hardware, held, offset)?;
+     write(hardware, held, offset, change(v))
+ }
+ 
+ /// `e1000_check_reset_block_ich8lan`: is firmware blocking a PHY reset? Polls `FWSM.RSPCIPHY` up to
+ /// 31 times 10 ms apart, as FreeBSD does.
+ pub(crate) fn is_reset_blocked(hardware: &mut impl Hardware) -> bool {
+     for i in 0..=30 {
+-        if hardware.read(super::registers::FIRMWARE_SEMAPHORE_REGISTER) & ICH_FWSM_RSPCIPHY != 0 {
++        if hardware.read(super::registers::FIRMWARE_SEMAPHORE_REGISTER) & ICH_FWSM_RSPCIPHY == /* ~ changed by cargo-mutants ~ */ 0 {
+             return false;
+         }
+         if i < 30 {
+             hardware.delay_microseconds(10_000);
+         }
+     }
+     true
+ }

@@ -1,0 +1,21 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace | with ^ in paged_offset
+@@ -152,17 +152,17 @@
+         == 0
+ );
+ 
+ /// A page and a register packed into the one offset [`read()`] and [`write()`] take: FreeBSD's
+ /// `PHY_REG(page, reg)`.
+ #[doc(alias = "PHY_REG")]
+ pub const fn paged_offset(page: u32, register: u32) -> u32 {
+     page << PHYSICAL_LAYER_DEVICE_PAGE_SHIFT
+-        | (register & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER)
++        ^ /* ~ changed by cargo-mutants ~ */ (register & MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER)
+ }
+ 
+ /// The PHY's registers this crate addresses, from FreeBSD's `e1000_defines.h`, `e1000_phy.h` and
+ /// `e1000_ich8lan.h`.
+ pub mod registers {
+     use super::paged_offset;
+     /// **Control Register** (OpenBSD's `PHY_CTRL`, `sys/dev/pci/if_em_hw.h`; FreeBSD's
+     /// `PHY_CONTROL`, `e1000_defines.h`). Media independent interface (MII) register 0.

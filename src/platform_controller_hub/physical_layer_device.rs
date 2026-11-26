@@ -247,6 +247,20 @@ pub(crate) const EXTCNF_CTRL_SWFLAG: u32 = 0x0000_0020;
 /// `FWSM.RSPCIPHY`: clear while firmware blocks a PHY reset.
 pub(crate) const ICH_FWSM_RSPCIPHY: u32 = 0x0000_0040;
 
+// The register check above bounds `register` to 31, so its field at bit 16 ends below the device
+// number field at bit 21, and a `u16` of data ends below the register field. `|` and `^` compose
+// those three operands identically; the compiler checks the layout here, so the OR-to-XOR swap
+// between them is an equivalent mutant. The device number is not bounded (it is a `u32`), so its
+// join with the opcode is not an equivalent mutant and a test kills it.
+#[allow(clippy::assertions_on_constants)] // the lint folds the constant comparison; it is the argument
+const _: () = assert!(
+    (MAXIMUM_PHYSICAL_LAYER_DEVICE_REGISTER_NUMBER
+        << management_data_interface_control::REGISTER_SHIFT)
+        >> management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT
+        == 0
+        && (u16::MAX as u32) >> management_data_interface_control::REGISTER_SHIFT == 0
+);
+
 /// One MDIO read of `register` at `physical_layer_device_number`, the PHY's position on the management bus,
 /// `e1000_read_phy_reg_mdic`. It goes through the `MDIC` register (the management data
 /// input/output control register).

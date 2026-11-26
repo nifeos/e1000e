@@ -8,8 +8,8 @@
 # `const _: () = assert!` beside the code checks that wherever both are constants. A line that
 # leans on something the compiler cannot check says what.
 #
-# Census of the last full run: 836 mutants, of which 740 were caught, 27 did not build and 69
-# survived. Each of the 69 survivors falls under one line below.
+# Census of the last full run: 836 mutants, of which 742 were caught, 27 did not build and 67
+# survived. Each of the 67 survivors falls under one line below.
 
 src/control_registers.rs:93 # RCTL's enable, broadcast and strip-CRC bits share no bit (asserted beside it)
 src/control_registers.rs:117 # TCTL's enable, pad, collision threshold and distance fields share no bit (asserted beside it)
@@ -30,12 +30,10 @@ src/platform_controller_hub/non_volatile_memory.rs:260 # initialize_cycle has ju
 src/platform_controller_hub/non_volatile_memory.rs:261 # the control half read back is zero (see line 260), so masking it with the byte-count field or with its complement both give zero
 src/platform_controller_hub/non_volatile_memory.rs:262 # the byte count lands inside the field the line before masked out (asserted beside it)
 src/platform_controller_hub/physical_layer_device.rs:160 # a page shifted left by five has no bit in the masked five-bit register field (asserted beside it)
-src/platform_controller_hub/physical_layer_device.rs:276 # the register (at most 31, checked above) at bit 16 and the device number at bit 21 share no bit; every caller passes device number 1 or 2
-src/platform_controller_hub/physical_layer_device.rs:278 # the device number at bit 21 (1 or 2 from every caller) and the read opcode at bit 27 share no bit
-src/platform_controller_hub/physical_layer_device.rs:299 # the u16 data and the register (at most 31, checked above) at bit 16 share no bit
-src/platform_controller_hub/physical_layer_device.rs:300 # the register at bit 16 and the device number at bit 21 share no bit; every caller passes device number 1 or 2
-src/platform_controller_hub/physical_layer_device.rs:302 # the device number at bit 21 (1 or 2 from every caller) and the write opcode at bit 26 share no bit
-src/platform_controller_hub/physical_layer_device.rs:527 # the high identifier word at bit 16 and the low u16 share no bit (asserted beside it)
+src/platform_controller_hub/physical_layer_device.rs:280 # the register (at most 31, checked above) at bit 16 and the device number at bit 21 share no bit (asserted beside it)
+src/platform_controller_hub/physical_layer_device.rs:303 # the u16 data and the register (at most 31, checked above) at bit 16 share no bit (asserted beside it)
+src/platform_controller_hub/physical_layer_device.rs:304 # the register (at most 31, checked above) at bit 16 and the device number at bit 21 share no bit (asserted beside it)
+src/platform_controller_hub/physical_layer_device.rs:531 # the high identifier word at bit 16 and the low u16 share no bit (asserted beside it)
 src/platform_controller_hub/sequence.rs:248 # the ULP configuration bits are distinct single bits (asserted beside them)
 src/platform_controller_hub/sequence.rs:249 # the ULP configuration bits are distinct single bits (asserted beside them)
 src/platform_controller_hub/sequence.rs:250 # the ULP configuration bits are distinct single bits (asserted beside them)

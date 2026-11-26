@@ -1,0 +1,25 @@
+--- src/platform_controller_hub/physical_layer_device.rs
++++ replace physical_layer_device_number_for -> u32 with 1
+@@ -393,21 +393,17 @@
+     /// **The flag is given up to a global reset**, which clears `EXTCNF_CTRL`. FreeBSD's
+     /// `e1000_reset_hw_ich8lan` takes it before `CTRL.RST` and never releases it; this names that.
+     pub(crate) fn lost_to_reset(self) {}
+ }
+ 
+ /// Which PHY number, the PHY's position on the management bus, a page lives at
+ /// (`e1000_get_phy_addr_for_hv_page`).
+ pub(crate) const fn physical_layer_device_number_for(page: u32) -> u32 {
+-    if page >= FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE {
+-        1
+-    } else {
+-        2
+-    }
++    1 /* ~ changed by cargo-mutants ~ */
+ }
+ 
+ /// What one paged access does on the bus: the page-select write, if any, then the register.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+ #[non_exhaustive]
+ pub struct PagedAccessPlan {
+     /// `Some(value)` when the page-select register is written first (at PHY address 1).
+     pub select: Option<u16>,
