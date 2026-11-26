@@ -3,7 +3,7 @@
 Dates are UTC. One line per release, what changed and why, so a reader of the diff has the
 sentence beside it.
 
-## Unreleased
+## 0.1.0-pre.4
 
 - Removed the unused `KUMERAN_MODE_CONTROL_REGISTER`. It can return when a workaround for the
   Kumeran interconnect (K1 or link stall) needs it.
