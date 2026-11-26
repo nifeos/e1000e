@@ -239,6 +239,13 @@ impl DataPlane {
     }
 
     /// Queue `frame` for transmission.
+    ///
+    /// # Errors
+    ///
+    /// - [`TransmitError::BadLength`] when `frame` is empty or longer than
+    ///   [`MAXIMUM_FRAME_BYTES`].
+    /// - [`TransmitError::Full`] when every transmit descriptor is still the device's, after
+    ///   reclaiming those it has finished. Nothing is queued; the caller tries again later.
     pub fn transmit(
         &mut self,
         region: &mut impl DirectMemoryAccessRegion,

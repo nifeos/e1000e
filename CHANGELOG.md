@@ -15,6 +15,8 @@ sentence beside it.
 - `DataPlane::try_new` returns `None` where `DataPlane::new` panics, a region that would run past
   the top of the physical address space. Provisional name.
 - `#![forbid(unsafe_code)]` states that the crate has no `unsafe`, and the compiler holds it there.
+- Every public function that returns a `Result` has an `# Errors` section naming which error it
+  returns and when.
 - The manifest names its documentation, docs.rs.
 - The package carries the crate, its example, its documents and the licenses (36 files, from 73),
   leaving out the repository's workflows, hooks, falsification patches and lint settings.

@@ -331,11 +331,14 @@ fn has_management_engine(hardware: &mut impl Hardware) -> bool {
 /// the PHY so it starts from a known state, unless firmware blocks PHY resets: then it skips the
 /// reset, notes [`BringUpObservation::PhysicalLayerDeviceResetBlocked`] and returns the identifier.
 ///
-/// Refuses with [`Error::PhysicalLayerDevicePowerCycleBlocked`] when firmware blocks that power cycle,
-/// [`Error::PhysicalLayerDeviceInaccessible`] when the PHY never answers,
-/// [`Error::BlockedAfterPhysicalLayerDeviceReset`] when firmware takes the PHY after its reset,
-/// [`Error::PhysicalLayerDevice`] when the semaphore cannot be taken, and
-/// [`Error::NonVolatileMemory`] when no NVM bank is valid after the reset.
+/// # Errors
+///
+/// - [`Error::PhysicalLayerDevicePowerCycleBlocked`] when the PHY does not answer and firmware
+///   blocks the power cycle that would reset it.
+/// - [`Error::PhysicalLayerDeviceInaccessible`] when the PHY never answers.
+/// - [`Error::BlockedAfterPhysicalLayerDeviceReset`] when firmware takes the PHY after its reset.
+/// - [`Error::PhysicalLayerDevice`] when the semaphore cannot be taken.
+/// - [`Error::NonVolatileMemory`] when no NVM bank is valid after the reset.
 pub fn initialize_physical_layer_device_workarounds(
     hardware: &mut impl Hardware,
 ) -> Result<u32, Error> {
@@ -718,6 +721,16 @@ fn configuration_done(hardware: &mut impl Hardware) -> Result<(), Error> {
 /// One addition: FreeBSD does not wait for `CTRL.RST` to self-clear (its configuration-done wait
 /// covers it); this waits up to `reset_wait_milliseconds` first, so a reset that never completes is reported
 /// as that rather than as a PHY timeout.
+///
+/// # Errors
+///
+/// - [`Error::ResetTimeout`] when `CTRL.RST` does not self-clear within `reset_wait_milliseconds`.
+/// - After a PHY reset: [`Error::NonVolatileMemory`] when no NVM bank is valid or an NVM read for
+///   the PHY's configuration fails, and [`Error::PhysicalLayerDevice`] when the semaphore cannot be
+///   taken or a PHY access in that configuration fails.
+///
+/// A semaphore that cannot be taken before the reset is not an error: the reset clears it, and the
+/// refusal is noted as [`BringUpObservation::SoftwareFlagBeforeReset`].
 pub fn global_reset(
     hardware: &mut impl Hardware,
     reset_wait_milliseconds: u64,
@@ -1029,6 +1042,10 @@ const _: () = assert!(
 /// receive address and clears the multicast table itself): `e1000_initialize_hw_bits_ich8lan`, the
 /// link setup, the transmit write-back policy and relaxed-ordering disable. Statistics are not
 /// cleared; nothing reads them.
+///
+/// # Errors
+///
+/// Those of [`setup_copper_link`], which runs only when firmware does not block PHY resets.
 pub fn initialize_hardware(hardware: &mut impl Hardware) -> Result<(), Error> {
     // `e1000_initialize_hw_bits_ich8lan`. Bit 22 of CTRL_EXT, TXDCTL and the TARC bits are
     // unnamed in FreeBSD too; they are Intel's.
@@ -1140,6 +1157,12 @@ const _: () = assert!(
 /// `e1000_set_master_slave_mode` is left out: FreeBSD's `em` runs it with `e1000_ms_hw_default`,
 /// which writes `PHY_1000T_CTRL` back unchanged. FreeBSD's short wait for link afterwards is the
 /// kernel half's own `STATUS.LU` wait.
+///
+/// # Errors
+///
+/// [`Error::PhysicalLayerDevice`] when the semaphore cannot be taken
+/// ([`SoftwareFlag::acquire`]) or a PHY access fails ([`physical_layer_device::update`]). The
+/// semaphore, once taken, is released either way.
 pub fn setup_copper_link(hardware: &mut impl Hardware) -> Result<(), Error> {
     let c = (hardware.read(mac::DEVICE_CONTROL_REGISTER) | crate::DEVICE_CONTROL_SET_LINK_UP)
         & !(CTRL_FRCSPD | CTRL_FRCDPX);
