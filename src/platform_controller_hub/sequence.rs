@@ -1058,8 +1058,7 @@ const _: () = assert!(
 /// use e1000e::platform_controller_hub::flush::{self, FlushSupport};
 /// use e1000e::platform_controller_hub::sequence::{self, Error};
 ///
-/// /// The second argument reaches the transmit ring at `transmit_ring_base`, the bus address of
-/// /// the caller's ring.
+/// /// `rings` reaches the caller's transmit ring, whose bus address is `transmit_ring_base`.
 /// fn bring_up(
 ///     hardware: &mut impl Hardware,
 ///     rings: &mut impl FlushSupport,

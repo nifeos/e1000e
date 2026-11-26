@@ -84,79 +84,41 @@ impl core::error::Error for TransmitError {}
 /// does to the device goes through this, so all of it runs on the host against a simulated
 /// device.
 ///
-/// One frame each way against plain memory standing in for the device, as
-/// `examples/host_ring.rs` does at more length. On hardware the region is the mapped direct
-/// memory access memory and the tails are the queue registers.
+/// One frame each way, a `Vec<u8>` as the region and two integers as the tails (hidden here, shown
+/// in `examples/host_ring.rs`); on hardware they are the mapped memory and the queue registers.
 ///
 /// ```
-/// use e1000e::{
-///     DataPlane, DirectMemoryAccessRegion, RECEIVE_STATUS_DESCRIPTOR_DONE,
-///     RECEIVE_STATUS_END_OF_PACKET, Tails, layout,
-/// };
-///
-/// struct Region(Vec<u8>);
-///
-/// impl DirectMemoryAccessRegion for Region {
-///     fn read_u64(&self, offset: u64) -> u64 {
-///         let at = offset as usize;
-///         let mut word = [0; 8];
-///         word.copy_from_slice(&self.0[at..at + 8]);
-///         u64::from_le_bytes(word)
-///     }
-///     fn write_u64(&mut self, offset: u64, value: u64) {
-///         let at = offset as usize;
-///         self.0[at..at + 8].copy_from_slice(&value.to_le_bytes());
-///     }
-///     fn read_bytes(&self, offset: u64, out: &mut [u8]) {
-///         let at = offset as usize;
-///         out.copy_from_slice(&self.0[at..at + out.len()]);
-///     }
-///     fn write_bytes(&mut self, offset: u64, source: &[u8]) {
-///         let at = offset as usize;
-///         self.0[at..at + source.len()].copy_from_slice(source);
-///     }
-/// }
-///
-/// #[derive(Default)]
-/// struct TailRegisters {
-///     receive: u32,
-///     transmit: u32,
-/// }
-///
-/// impl Tails for TailRegisters {
-///     fn set_receive_tail(&mut self, value: u32) {
-///         self.receive = value;
-///     }
-///     fn set_transmit_tail(&mut self, value: u32) {
-///         self.transmit = value;
-///     }
-///     fn barrier(&mut self) {
-///         core::sync::atomic::fence(core::sync::atomic::Ordering::SeqCst);
-///     }
-/// }
-///
+/// use e1000e::{DataPlane, DirectMemoryAccessRegion, RECEIVE_STATUS_DESCRIPTOR_DONE, layout};
+/// # struct Region(Vec<u8>);
+/// # impl DirectMemoryAccessRegion for Region {
+/// #     fn read_u64(&self, o: u64) -> u64 { let mut w = [0; 8]; self.read_bytes(o, &mut w); u64::from_le_bytes(w) }
+/// #     fn write_u64(&mut self, o: u64, v: u64) { self.write_bytes(o, &v.to_le_bytes()) }
+/// #     fn read_bytes(&self, o: u64, out: &mut [u8]) { out.copy_from_slice(&self.0[o as usize..][..out.len()]) }
+/// #     fn write_bytes(&mut self, o: u64, s: &[u8]) { self.0[o as usize..][..s.len()].copy_from_slice(s) }
+/// # }
+/// # #[derive(Default)] struct TailRegisters { receive: u32, transmit: u32 }
+/// # impl e1000e::Tails for TailRegisters {
+/// #     fn set_receive_tail(&mut self, v: u32) { self.receive = v }
+/// #     fn set_transmit_tail(&mut self, v: u32) { self.transmit = v }
+/// #     fn barrier(&mut self) { core::sync::atomic::fence(core::sync::atomic::Ordering::SeqCst) }
+/// # }
 /// # fn main() -> Result<(), e1000e::TransmitError> {
 /// const BASE: u64 = 0x1000_0000;
 /// let mut region = Region(vec![0; layout::DIRECT_MEMORY_ACCESS_REGION_BYTES as usize]);
 /// let mut tails = TailRegisters::default();
 /// let mut data_plane = DataPlane::new(BASE);
 /// data_plane.start(&mut region, &mut tails);
-///
 /// // The device writes a 60-byte frame into the buffer descriptor 0 names, then its status.
 /// let descriptor = layout::receive_descriptor(0);
-/// let buffer = region.read_u64(descriptor) - BASE;
-/// region.write_bytes(buffer, &[0xab; 60]);
-/// let status = RECEIVE_STATUS_DESCRIPTOR_DONE | RECEIVE_STATUS_END_OF_PACKET;
-/// region.write_u64(descriptor + 8, 60 | u64::from(status) << 32);
-///
+/// region.write_bytes(region.read_u64(descriptor) - BASE, &[0xab; 60]);
+/// let done = u64::from(RECEIVE_STATUS_DESCRIPTOR_DONE | e1000e::RECEIVE_STATUS_END_OF_PACKET);
+/// region.write_u64(descriptor + 8, 60 | done << 32);
 /// let mut frame = [0; 2048];
 /// assert_eq!(data_plane.receive(&mut region, &mut tails, &mut frame), Some(60));
-///
-/// // And one frame out: transmit descriptor 0 is filled and the tail moves past it.
+/// // One frame out: transmit descriptor 0 is filled and the tail moves past it.
 /// data_plane.transmit(&mut region, &mut tails, &frame[..60])?;
 /// assert_eq!(tails.transmit, 1);
-/// # Ok(())
-/// # }
+/// # Ok(()) }
 /// ```
 #[derive(Debug)]
 pub struct DataPlane {
