@@ -17,7 +17,9 @@ struct Region(Vec<u8>);
 impl DirectMemoryAccessRegion for Region {
     fn read_u64(&self, offset: u64) -> u64 {
         let at = offset as usize;
-        u64::from_le_bytes(self.0[at..at + 8].try_into().unwrap())
+        let mut word = [0; 8];
+        word.copy_from_slice(&self.0[at..at + 8]);
+        u64::from_le_bytes(word)
     }
     fn write_u64(&mut self, offset: u64, value: u64) {
         let at = offset as usize;
@@ -55,7 +57,7 @@ impl Tails for TailRegisters {
 /// Where the region would sit in the device's view of memory.
 const REGION_PHYSICAL_ADDRESS: u64 = 0x1000_0000;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut region = Region(vec![0; layout::DIRECT_MEMORY_ACCESS_REGION_BYTES as usize]);
     let mut tails = TailRegisters::default();
     let mut data_plane = DataPlane::new(REGION_PHYSICAL_ADDRESS);
@@ -74,7 +76,7 @@ fn main() {
     let mut out = [0u8; 2048];
     let length = data_plane
         .receive(&mut region, &mut tails, &mut out)
-        .expect("the device wrote a frame");
+        .ok_or("the device wrote a frame, and receive found none")?;
     assert_eq!(&out[..length], &frame[..]);
     assert_eq!(
         tails.receive, 0,
@@ -84,9 +86,7 @@ fn main() {
 
     // Send a frame: the driver fills transmit descriptor 0 and moves the tail past it.
     let reply = [0xffu8; 42];
-    data_plane
-        .transmit(&mut region, &mut tails, &reply)
-        .expect("the ring has room");
+    data_plane.transmit(&mut region, &mut tails, &reply)?;
     assert_eq!(tails.transmit, 1);
     let descriptor = layout::transmit_descriptor(0);
     let sent_from = region.read_u64(descriptor) - REGION_PHYSICAL_ADDRESS;
@@ -102,4 +102,5 @@ fn main() {
     );
     assert!(data_plane.can_transmit(&mut region));
     println!("sent {} bytes", sent.len());
+    Ok(())
 }

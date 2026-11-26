@@ -15,6 +15,8 @@ sentence beside it.
 - `DataPlane::try_new` returns `None` where `DataPlane::new` panics, a region that would run past
   the top of the physical address space. Provisional name.
 - `#![forbid(unsafe_code)]` states that the crate has no `unsafe`, and the compiler holds it there.
+- Examples on `DataPlane` (one frame each way) and on `sequence::initialize_hardware` (the I219
+  bring-up order), and `examples/host_ring.rs` returns its errors with `?` rather than `expect`.
 - Every public function that returns a `Result` has an `# Errors` section naming which error it
   returns and when.
 - The manifest names its documentation, docs.rs.

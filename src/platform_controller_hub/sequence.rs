@@ -1046,6 +1046,39 @@ const _: () = assert!(
 /// # Errors
 ///
 /// Those of [`setup_copper_link`], which runs only when firmware does not block PHY resets.
+///
+/// # Examples
+///
+/// The bring-up order for an I219, as `docs/bring-up.md` lists it. The 82574L steps between the
+/// passes (the interrupt mask, the ring registers, the receive and transmit controls) are the
+/// caller's and are marked where they go.
+///
+/// ```no_run
+/// use e1000e::Hardware;
+/// use e1000e::platform_controller_hub::flush::{self, FlushSupport};
+/// use e1000e::platform_controller_hub::sequence::{self, Error};
+///
+/// /// The second argument reaches the transmit ring at `transmit_ring_base`, the bus address of
+/// /// the caller's ring.
+/// fn bring_up(
+///     hardware: &mut impl Hardware,
+///     rings: &mut impl FlushSupport,
+///     transmit_ring_base: u64,
+/// ) -> Result<u32, Error> {
+///     // At attach: reach the PHY, and learn which one it is.
+///     let identifier = sequence::initialize_physical_layer_device_workarounds(hardware)?;
+///     // Before any reset: empty the rings if the device asks, or the reset may hang it.
+///     let _ = flush::empty_descriptor_rings(hardware, rings, transmit_ring_base);
+///     sequence::global_reset(hardware, 1000)?;
+///     // Here: mask interrupts, tell firmware a driver has the device, read the station address
+///     // and clear the multicast table.
+///     sequence::initialize_hardware(hardware)?;
+///     // Here: program the rings and enable receive and transmit.
+///     sequence::transmit_errata(hardware);
+///     // Then `DataPlane::start`, and `e1000e::is_link_up` says when the link is up.
+///     Ok(identifier)
+/// }
+/// ```
 pub fn initialize_hardware(hardware: &mut impl Hardware) -> Result<(), Error> {
     // `e1000_initialize_hw_bits_ich8lan`. Bit 22 of CTRL_EXT, TXDCTL and the TARC bits are
     // unnamed in FreeBSD too; they are Intel's.
