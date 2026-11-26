@@ -1,4 +1,5 @@
 #![no_std]
+#![forbid(unsafe_code)]
 //! **The Intel `e1000e` family, as pure logic**: the 82574L and the Sunrise Point I219.
 //!
 //! Everything a driver computes, and nothing it touches. A driver may split into a kernel half

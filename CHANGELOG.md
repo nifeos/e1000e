@@ -10,6 +10,7 @@ sentence beside it.
   can move without breaking a caller.
 - Breaking: the device table `DEVICE_IDS` is private. `is_supported_device` and `model_name`
   answer what a probe asks, and the table can grow a field without breaking a caller.
+- `#![forbid(unsafe_code)]` states that the crate has no `unsafe`, and the compiler holds it there.
 - The manifest names its documentation, docs.rs.
 - The package carries the crate, its example, its documents and the licenses (36 files, from 73),
   leaving out the repository's workflows, hooks, falsification patches and lint settings.
