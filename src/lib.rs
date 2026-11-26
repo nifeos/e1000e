@@ -52,7 +52,7 @@ pub use control_registers::{
     INTERRUPT_CAUSE_RECEIVE_OVERRUN, INTERRUPT_CAUSE_RECEIVE_SEQUENCE_ERROR,
     INTERRUPT_CAUSE_RECEIVE_TIMER, INTERRUPT_CAUSE_TRANSMIT_DESCRIPTOR_WRITTEN_BACK,
     INTERRUPT_CAUSE_TRANSMIT_QUEUE_EMPTY, RECEIVE_FILTER_CONTROL_EXTENDED_DESCRIPTORS_ENABLE,
-    RECEIVE_MAC_ADDRESS_HIGH_VALID, receive_control_register_value,
+    RECEIVE_MAC_ADDRESS_HIGH_VALID, is_link_up, receive_control_register_value,
     station_mac_address_from_receive_words, transmit_control_register_value,
     transmit_inter_packet_gap_register_value,
 };

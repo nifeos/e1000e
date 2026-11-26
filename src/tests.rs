@@ -842,3 +842,34 @@ fn a_receive_tail_held_back_to_one_store_per_burst_hands_back_every_slot() {
     }
     assert_eq!(data_plane.dropped(), 0);
 }
+
+/// A register file holding one Device Status word; every other offset reads zero.
+struct DeviceStatus(u32);
+
+impl Hardware for DeviceStatus {
+    fn read(&mut self, offset: u64) -> u32 {
+        if offset == registers::DEVICE_STATUS_REGISTER {
+            self.0
+        } else {
+            0
+        }
+    }
+    fn write(&mut self, _: u64, _: u32) {}
+    fn read_flash_status(&mut self, _: u64) -> u16 {
+        0
+    }
+    fn delay_microseconds(&mut self, _: u64) {}
+    fn pci_vendor_id(&mut self) -> u16 {
+        VENDOR_INTEL
+    }
+    fn note(&mut self, _: platform_controller_hub::sequence::BringUpObservation) {}
+}
+
+/// The link is up exactly when Device Status carries its link-up bit, whatever else it carries.
+#[test]
+fn the_link_is_up_exactly_when_device_status_says_so() {
+    assert!(is_link_up(&mut DeviceStatus(DEVICE_STATUS_LINK_UP)));
+    assert!(is_link_up(&mut DeviceStatus(u32::MAX)));
+    assert!(!is_link_up(&mut DeviceStatus(0)));
+    assert!(!is_link_up(&mut DeviceStatus(!DEVICE_STATUS_LINK_UP)));
+}

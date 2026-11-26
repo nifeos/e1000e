@@ -10,6 +10,8 @@ sentence beside it.
   can move without breaking a caller.
 - Breaking: the device table `DEVICE_IDS` is private. `is_supported_device` and `model_name`
   answer what a probe asks, and the table can grow a field without breaking a caller.
+- `is_link_up` reads the link-up bit of Device Status, so a caller does not repeat the register and
+  the mask. Provisional name.
 - `DataPlane::try_new` returns `None` where `DataPlane::new` panics, a region that would run past
   the top of the physical address space. Provisional name.
 - `#![forbid(unsafe_code)]` states that the crate has no `unsafe`, and the compiler holds it there.
