@@ -101,21 +101,37 @@ impl DataPlane {
     ///
     /// When the region, [`layout::DIRECT_MEMORY_ACCESS_REGION_BYTES`] long, would run past the
     /// top of the physical address space, since every buffer address is the base plus an offset.
+    /// [`DataPlane::try_new`] refuses that case instead.
     pub fn new(data_plane_physical_address: u64) -> DataPlane {
-        assert!(
-            data_plane_physical_address
-                .checked_add(layout::DIRECT_MEMORY_ACCESS_REGION_BYTES)
-                .is_some(),
-            "the direct memory access region runs past the top of the address space"
-        );
-        DataPlane {
+        match DataPlane::try_new(data_plane_physical_address) {
+            Some(data_plane) => data_plane,
+            None => {
+                panic!("the direct memory access region runs past the top of the address space")
+            }
+        }
+    }
+
+    /// A data plane over the region at `data_plane_physical_address`, or `None` when the region,
+    /// [`layout::DIRECT_MEMORY_ACCESS_REGION_BYTES`] long, would run past the top of the physical
+    /// address space. [`DataPlane::new`] without the panic, for a caller whose mapping does not
+    /// already rule that case out. Provisional name.
+    ///
+    /// ```
+    /// use e1000e::{DataPlane, layout::DIRECT_MEMORY_ACCESS_REGION_BYTES};
+    ///
+    /// assert!(DataPlane::try_new(0x8000_0000).is_some());
+    /// assert!(DataPlane::try_new(u64::MAX - DIRECT_MEMORY_ACCESS_REGION_BYTES + 1).is_none());
+    /// ```
+    pub fn try_new(data_plane_physical_address: u64) -> Option<DataPlane> {
+        data_plane_physical_address.checked_add(layout::DIRECT_MEMORY_ACCESS_REGION_BYTES)?;
+        Some(DataPlane {
             physical_address: data_plane_physical_address,
             receive_next: 0,
             transmit_next: 0,
             transmit_clean: 0,
             dropped: 0,
             dropped_for_lack_of_room: 0,
-        }
+        })
     }
 
     /// A running count of the frames the device wrote that [`DataPlane::receive`] did not

@@ -310,6 +310,9 @@ fn a_region_running_past_the_top_of_physical_memory_is_refused() {
     let highest = u64::MAX - layout::DIRECT_MEMORY_ACCESS_REGION_BYTES;
     let _ = DataPlane::new(highest);
     assert!(std::panic::catch_unwind(|| DataPlane::new(highest + 1)).is_err());
+    assert!(DataPlane::try_new(highest).is_some());
+    assert!(DataPlane::try_new(highest + 1).is_none());
+    assert!(DataPlane::try_new(u64::MAX).is_none());
 }
 
 #[test]
