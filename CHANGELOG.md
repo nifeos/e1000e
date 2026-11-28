@@ -5,6 +5,10 @@ sentence beside it.
 
 ## Unreleased
 
+- `platform_controller_hub::link::check_for_copper_link` ports FreeBSD's I219 link-up half
+  (`e1000_check_for_copper_link_ich8lan`): the speed-dependent gap and physical layer device
+  settings, the latency tolerance report, K1 and the K0s timer, so a link that comes up is set for
+  its speed as FreeBSD sets it. Provisional names.
 - Breaking: `DataPlane`'s two counters are private, read through `DataPlane::dropped()` and
   `DataPlane::dropped_for_lack_of_room()`, so a caller can no longer write them and the counts
   can move without breaking a caller.

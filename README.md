@@ -145,9 +145,10 @@ then was 46cf612d (2026-08-30). The author copied the notice of `if_em.c` and `i
   from.
 - The crate claims only the 82574L and the Sunrise Point I219 ids (`is_supported_device`). Later platform
   controller hub (PCH) generations need workarounds this crate does not carry.
-- The crate does not port the I219's link-up half, so it does not reconfigure the PHY when link
-  comes up. A link that comes up and then loses frames points there first. The crate does not
-  configure flow control.
+- The I219's link-up half (`platform_controller_hub::link::check_for_copper_link`) is checked
+  only against the simulator, which cannot model the platform's answer to a latency tolerance
+  report or the timing of the PHY's indirect registers. It does not configure flow control and
+  never turns Energy Efficient Ethernet on.
 - No version of this crate has run on an I219. Only the simulator, which is this crate's reading of
   FreeBSD, checks the port.
 - Legacy descriptors on the I219 are an assumption from the 8254x lineage.
