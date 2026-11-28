@@ -57,6 +57,11 @@ port departs from it.
 5. `sequence::initialize_hardware`, which also sets up the copper link.
 6. Steps 8 to 11 of the 82574L list, then `sequence::transmit_errata` once transmit is on.
 7. `DataPlane::start`.
+8. `link::check_for_copper_link` with a `link::LinkWatch` built from the platform's latency limits
+   (PCI configuration offsets `0xA8` and `0xAA`), called on every link status change and
+   periodically, as FreeBSD's `em_if_update_admin_status` calls it. Call
+   `LinkWatch::link_status_changed` when the device reports one. A check that is not due returns
+   `LinkReport::NotChecked` without touching the device.
 
 ## Counting frames
 

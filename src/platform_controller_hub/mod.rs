@@ -91,8 +91,13 @@
 //!   `DEVICE_STATUS_LINK_UP` set, and frames passed on receive and on transmit with no CRC errors
 //!   and none missed. Any other part is proven only against `simulator`, which is this crate's
 //!   reading of FreeBSD and not the device.
-//! - **The link-up half is not ported** (`e1000_check_for_copper_link_ich8lan`). A link that comes
-//!   up and then loses frames points here first.
+//! - **The link-up half is proven only against `simulator`** ([`link::check_for_copper_link`]).
+//!   The simulator answers each Extended Management Interface and Kumeran access at once and never
+//!   fails one mid-sequence, and it latches PHY status low only when a test asks. It cannot say what
+//!   the platform does with a latency tolerance report, or whether K1 or the K0s timer changes
+//!   receive latency on silicon.
+//! - **The link-up half leaves out flow control and turns Energy Efficient Ethernet off only**; its
+//!   module documentation lists each departure from FreeBSD.
 //! - **Flow control is not configured, so it is not advertised** ([`sequence::setup_copper_link`]).
 //! - **Four more steps of FreeBSD's bring-up are left out**: the `GCR` no-snoop write, `WUFC`
 //!   cleared after the reset, `VET`, and `PBA` before the flush. [`sequence`] lists them.
@@ -104,6 +109,7 @@
 //! - **The licenses' second condition is the distributor's**: a binary built from this crate must
 //!   reproduce the notices below in its documentation or other materials.
 
+pub mod link;
 pub mod non_volatile_memory;
 pub mod physical_layer_device;
 pub mod sequence;
