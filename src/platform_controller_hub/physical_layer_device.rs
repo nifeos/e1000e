@@ -170,6 +170,11 @@ pub mod registers {
     #[doc(alias = "PHY_CTRL")]
     #[doc(alias = "PHY_CONTROL")]
     pub const PHYSICAL_LAYER_DEVICE_CONTROL_REGISTER: u32 = 0x00;
+    /// **Status Register** (`PHY_STATUS`, FreeBSD's `e1000_defines.h`). Media independent interface
+    /// (MII) register 1. Its link bit latches low, so it is read twice.
+    #[doc(alias = "status register")]
+    #[doc(alias = "PHY_STATUS")]
+    pub(crate) const PHYSICAL_LAYER_DEVICE_STATUS_REGISTER: u32 = 0x01;
     /// **PHY Identifier, Word 1** (`PHY_ID1`, FreeBSD's `e1000_defines.h`). The high word.
     #[doc(alias = "physical layer device identifier, word 1")]
     #[doc(alias = "PHY_ID1")]
@@ -211,6 +216,30 @@ pub mod registers {
     #[doc(alias = "power management control")]
     #[doc(alias = "HV_PM_CTRL")]
     pub(crate) const POWER_MANAGEMENT_CONTROL_REGISTER: u32 = paged_offset(770, 17);
+    /// **Extended Management Interface (EMI) Select** (`I82579_EMI_ADDR`, FreeBSD's
+    /// `e1000_ich8lan.h`). Page 0, register 16: which extended register the data register reaches.
+    #[doc(alias = "extended management interface select")]
+    #[doc(alias = "I82579_EMI_ADDR")]
+    pub(crate) const EXTENDED_MANAGEMENT_INTERFACE_SELECT_REGISTER: u32 = 0x10;
+    /// **Extended Management Interface Data** (`I82579_EMI_DATA`, FreeBSD's `e1000_ich8lan.h`). Page
+    /// 0, register 17: the extended register [`EXTENDED_MANAGEMENT_INTERFACE_SELECT_REGISTER`] names.
+    #[doc(alias = "extended management interface data")]
+    #[doc(alias = "I82579_EMI_DATA")]
+    pub(crate) const EXTENDED_MANAGEMENT_INTERFACE_DATA_REGISTER: u32 = 0x11;
+    /// **Low Power Idle Control** (`I82579_LPI_CTRL`, FreeBSD's `e1000_ich8lan.h`). Page 772, register
+    /// 20: the energy efficient ethernet enables for 100 and 1000 Mbit/s.
+    #[doc(alias = "low power idle control")]
+    #[doc(alias = "I82579_LPI_CTRL")]
+    pub(crate) const LOW_POWER_IDLE_CONTROL_REGISTER: u32 = paged_offset(772, 20);
+    /// **Phase-Locked Loop Clock Gate** (`I217_PLL_CLOCK_GATE_REG`, FreeBSD's `e1000_ich8lan.h`).
+    /// Page 772, register 28; its low 11 bits are the gate's timer.
+    #[doc(alias = "phase-locked loop clock gate")]
+    #[doc(alias = "I217_PLL_CLOCK_GATE_REG")]
+    pub(crate) const PHASE_LOCKED_LOOP_CLOCK_GATE_REGISTER: u32 = paged_offset(772, 28);
+    /// **Pointer Gap** (FreeBSD's `PHY_REG(776, 20)`, `e1000_ich8lan.c`, which gives it no name).
+    /// Page 776, register 20. FreeBSD calls bits 11:2 `ptr_gap`; the name here is that field's.
+    #[doc(alias = "PHY_REG(776, 20)")]
+    pub(crate) const POINTER_GAP_REGISTER: u32 = paged_offset(776, 20);
     /// **Ultra-Low-Power Configuration 1** (`I218_ULP_CONFIG1`, FreeBSD's `e1000_ich8lan.h`). Page
     /// 779, register 16.
     #[doc(alias = "ultra-low-power configuration 1")]

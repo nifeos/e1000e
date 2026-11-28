@@ -78,6 +78,10 @@ pub enum Error {
     BlockedAfterPhysicalLayerDeviceReset,
     /// `CTRL.RST` did not self-clear.
     ResetTimeout,
+    /// The latency the receive buffer tolerates does not encode in the latency tolerance reporting
+    /// value's scale, or the buffer flush high water mark it gives is outside 0 to 31 KiB
+    /// (`-E1000_ERR_CONFIG` in FreeBSD's `e1000_platform_pm_pch_lpt`).
+    LatencyToleranceOutOfRange,
 }
 
 impl core::fmt::Display for Error {
@@ -99,6 +103,9 @@ impl core::fmt::Display for Error {
                 f.write_str("firmware began blocking physical layer device access after its reset")
             }
             Error::ResetTimeout => f.write_str("the global reset did not self-clear"),
+            Error::LatencyToleranceOutOfRange => {
+                f.write_str("the receive buffer's latency tolerance is out of range")
+            }
         }
     }
 }
@@ -191,6 +198,31 @@ pub enum BringUpObservation {
     SystemManagementBusFrequencyUnsupported,
     /// The host wakeup bit could not be read after the reset, so it was left as it was.
     HostWakeupUnread(physical_layer_device::Error),
+    /// The link check told the platform this latency tolerance
+    /// ([`super::link::check_for_copper_link`]).
+    LatencyToleranceReported {
+        /// The latency tolerance reporting value's 13-bit encoding (scale in bits 12:10, value in
+        /// bits 9:0), sent as both the snoop and the no-snoop latency. Zero with no link.
+        encoded: u16,
+        /// The optimized buffer flush/fill high water mark, in KiB of receive buffer.
+        high_water_mark_kibibytes: u32,
+    },
+    /// The link check raised the PHY's pointer gap to `0x18` at 1000 Mbit/s, from this value.
+    PointerGapRaised {
+        /// Bits 11:2 of page 776, register 20, as found.
+        from: u16,
+    },
+    /// A PHY access FreeBSD's link check makes without checking its result failed, at this paged
+    /// offset; a failed read skips the write that would have followed.
+    LinkPhysicalLayerDeviceAccessFailed {
+        /// The paged offset ([`physical_layer_device::paged_offset`]).
+        offset: u32,
+        /// Why.
+        error: physical_layer_device::Error,
+    },
+    /// Energy efficient ethernet could not be turned off after link up. The link is up anyway, as
+    /// FreeBSD's `em` reports it.
+    EnergyEfficientEthernetNotDisabled(Error),
 }
 
 // `CTRL` bits.
@@ -1835,6 +1867,7 @@ mod tests {
             Error::PhysicalLayerDevicePowerCycleBlocked,
             Error::BlockedAfterPhysicalLayerDeviceReset,
             Error::ResetTimeout,
+            Error::LatencyToleranceOutOfRange,
         ] {
             assert!(!plain.to_string().is_empty(), "{plain:?} has a message");
             assert!(plain.source().is_none(), "{plain:?} wraps nothing");

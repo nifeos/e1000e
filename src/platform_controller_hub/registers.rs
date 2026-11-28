@@ -4,15 +4,30 @@
 #[doc(alias = "strap")]
 #[doc(alias = "E1000_STRAP")]
 pub(crate) const STRAP_REGISTER: u64 = 0x0_000c;
+/// **Future Extended NVM 6** (`E1000_FEXTNVM6`, FreeBSD's `e1000_regs.h`). Holds the K1-off
+/// enable the link-up half copies from [`PCI_EXPRESS_ANALOG_CONFIGURATION_REGISTER`].
+#[doc(alias = "future extended non-volatile memory 6")]
+#[doc(alias = "E1000_FEXTNVM6")]
+pub(crate) const FUTURE_EXTENDED_NON_VOLATILE_MEMORY_6_REGISTER: u64 = 0x0_0010;
 /// **Management Data Interface (MDI) Control** (`E1000_MDIC`, FreeBSD's `e1000_regs.h`). The MDIO transaction register
 /// ([`super::physical_layer_device`]).
 #[doc(alias = "management data interface control")]
 #[doc(alias = "E1000_MDIC")]
 pub(crate) const MANAGEMENT_DATA_INTERFACE_CONTROL_REGISTER: u64 = 0x0_0020;
+/// **Future Extended NVM 4** (`E1000_FEXTNVM4`, FreeBSD's `e1000_regs.h`). Its low three bits are
+/// the beacon duration.
+#[doc(alias = "future extended non-volatile memory 4")]
+#[doc(alias = "E1000_FEXTNVM4")]
+pub(crate) const FUTURE_EXTENDED_NON_VOLATILE_MEMORY_4_REGISTER: u64 = 0x0_0024;
 /// **Future Extended NVM** (`E1000_FEXTNVM`, FreeBSD's `e1000_regs.h`).
 #[doc(alias = "future extended non-volatile memory")]
 #[doc(alias = "E1000_FEXTNVM")]
 pub(crate) const FUTURE_EXTENDED_NON_VOLATILE_MEMORY_REGISTER: u64 = 0x0_0028;
+/// **Kumeran Control and Status** (`E1000_KMRNCTRLSTA`, FreeBSD's `e1000_regs.h`). The window onto
+/// the Kumeran registers of the MAC-PHY interconnect: offset, read enable and data in one word.
+#[doc(alias = "kumeran control and status")]
+#[doc(alias = "E1000_KMRNCTRLSTA")]
+pub(crate) const KUMERAN_CONTROL_AND_STATUS_REGISTER: u64 = 0x0_0034;
 /// **Future Extended NVM 3** (`E1000_FEXTNVM3`, FreeBSD's `e1000_regs.h`).
 #[doc(alias = "future extended non-volatile memory 3")]
 #[doc(alias = "E1000_FEXTNVM3")]
@@ -21,6 +36,21 @@ pub(crate) const FUTURE_EXTENDED_NON_VOLATILE_MEMORY_3_REGISTER: u64 = 0x0_003c;
 #[doc(alias = "future extended non-volatile memory 7")]
 #[doc(alias = "E1000_FEXTNVM7")]
 pub(crate) const FUTURE_EXTENDED_NON_VOLATILE_MEMORY_7_REGISTER: u64 = 0x0_00e4;
+/// **Sideband Control** (`E1000_SVCR`, FreeBSD's `e1000_regs.h`). Optimized buffer flush/fill
+/// (OBFF) enable and its interrupt unmask.
+#[doc(alias = "sideband control")]
+#[doc(alias = "E1000_SVCR")]
+pub(crate) const SIDEBAND_CONTROL_REGISTER: u64 = 0x0_00f0;
+/// **Sideband Threshold** (`E1000_SVT`, FreeBSD's `e1000_regs.h`). The optimized buffer flush/fill
+/// high water mark, in KiB of receive buffer.
+#[doc(alias = "sideband threshold")]
+#[doc(alias = "E1000_SVT")]
+pub(crate) const SIDEBAND_THRESHOLD_REGISTER: u64 = 0x0_00f4;
+/// **Latency Tolerance Reporting Value** (`E1000_LTRV`, FreeBSD's `e1000_ich8lan.h`). The snoop and
+/// no-snoop latencies the MAC reports to the platform, and the bit that sends them.
+#[doc(alias = "latency tolerance reporting value")]
+#[doc(alias = "E1000_LTRV")]
+pub(crate) const LATENCY_TOLERANCE_REPORTING_VALUE_REGISTER: u64 = 0x0_00f8;
 /// **LED Control** (`E1000_LEDCTL`, FreeBSD's `e1000_regs.h`).
 #[doc(alias = "led control")]
 #[doc(alias = "E1000_LEDCTL")]
@@ -40,6 +70,11 @@ pub(crate) const EXTENDED_CONFIGURATION_SIZE_WORDS_REGISTER: u64 = 0x0_0f08;
 #[doc(alias = "physical layer device control register in control and status registers")]
 #[doc(alias = "E1000_PHY_CTRL")]
 pub(crate) const PHYSICAL_LAYER_DEVICE_CONTROL_REGISTER: u64 = 0x0_0f10;
+/// **PCI Express Analog Configuration** (`E1000_PCIEANACFG`, FreeBSD's `e1000_regs.h`). Read only
+/// here: its K1-off bit is copied into [`FUTURE_EXTENDED_NON_VOLATILE_MEMORY_6_REGISTER`].
+#[doc(alias = "pci express analog configuration")]
+#[doc(alias = "E1000_PCIEANACFG")]
+pub(crate) const PCI_EXPRESS_ANALOG_CONFIGURATION_REGISTER: u64 = 0x0_0f18;
 /// **`IOSF` Power Control** (`E1000_IOSFPC`, FreeBSD's `e1000_regs.h`). The I/O side-band fabric's
 /// power control, which SPT's transmit errata write. FreeBSD's comment says the write avoids corrupted transmit data.
 #[doc(alias = "iosf power control")]

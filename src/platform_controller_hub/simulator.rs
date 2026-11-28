@@ -71,6 +71,20 @@ pub struct SimulatedHardware {
     /// Every BAR0 write, in order.
     pub writes: Vec<(u64, u32)>,
     lanphypc_low: bool,
+    /// The PHY's link, as `PHY_STATUS` bit 2 reports it once any latched loss has been read.
+    pub link_up: bool,
+    /// A loss of link `PHY_STATUS` still latches: the next status read shows no link, and clears it.
+    pub link_latched_low: bool,
+    /// Extended management interface registers, by the address written to `I82579_EMI_ADDR`.
+    pub extended: HashMap<u16, u16>,
+    /// Every extended register read, by address, in order.
+    pub extended_reads: Vec<u16>,
+    /// Kumeran registers, by offset.
+    pub kumeran: HashMap<u32, u16>,
+    /// Every Kumeran write as (offset, data), in order.
+    pub kumeran_writes: Vec<(u32, u16)>,
+    /// Paged offsets whose accesses end in `MDIC.E`.
+    pub failing_offsets: Vec<u32>,
 }
 
 pub(crate) const PHYSICAL_LAYER_DEVICE_ID: u32 = 0x0154_00a0;
@@ -110,6 +124,13 @@ impl SimulatedHardware {
             reads: Vec::new(),
             writes: Vec::new(),
             lanphypc_low: false,
+            link_up: false,
+            link_latched_low: false,
+            extended: HashMap::new(),
+            extended_reads: Vec::new(),
+            kumeran: HashMap::new(),
+            kumeran_writes: Vec::new(),
+            failing_offsets: Vec::new(),
         };
         // FW_VALID when there is an ME; RSPCIPHY set, so firmware does not block PHY resets.
         s.mac.insert(
@@ -151,7 +172,20 @@ impl SimulatedHardware {
             >> management_data_interface_control::REGISTER_SHIFT;
         let physical_layer_device_number =
             value >> management_data_interface_control::PHYSICAL_LAYER_DEVICE_SHIFT & 0x1f;
-        if !self.physical_layer_device_answers() {
+        let failing = |o: u32| self.failing_offsets.contains(&o);
+        let addressed = if physical_layer_device_number == 1 {
+            physical_layer_device::paged_offset(
+                if self.page == 0 {
+                    physical_layer_device::FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE
+                } else {
+                    self.page
+                },
+                register,
+            )
+        } else {
+            register
+        };
+        if !self.physical_layer_device_answers() || failing(addressed) {
             self.mac.insert(
                 mac_mdic(),
                 value
@@ -164,15 +198,8 @@ impl SimulatedHardware {
             && register == physical_layer_device::IGP01E1000_PHYSICAL_LAYER_DEVICE_PAGE_SELECT
         {
             None
-        } else if physical_layer_device_number == 1 {
-            let page = if self.page == 0 {
-                physical_layer_device::FIRST_PAGE_AT_PHYSICAL_LAYER_DEVICE_NUMBER_ONE
-            } else {
-                self.page
-            };
-            Some(physical_layer_device::paged_offset(page, register))
         } else {
-            Some(register)
+            Some(addressed)
         };
         if value & management_data_interface_control::OPERATION_WRITE != 0 {
             let data = value as u16;
@@ -180,6 +207,11 @@ impl SimulatedHardware {
                 None => {
                     self.page =
                         u32::from(data) >> physical_layer_device::PHYSICAL_LAYER_DEVICE_PAGE_SHIFT;
+                }
+                Some(o) if o == physical_layer_device::registers::EXTENDED_MANAGEMENT_INTERFACE_DATA_REGISTER => {
+                    let selected = self.selected_extended_register();
+                    self.extended.insert(selected, data);
+                    self.physical_layer_device_writes.push((o, data));
                 }
                 Some(o) => {
                     self.physical_layer_device_registers.insert(o, data);
@@ -194,15 +226,51 @@ impl SimulatedHardware {
                 value | management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY,
             );
         } else {
-            let data = offset.map_or(0, |o| {
-                *self.physical_layer_device_registers.get(&o).unwrap_or(&0)
-            });
+            let data = match offset {
+                None => 0,
+                Some(o) if o == physical_layer_device::registers::EXTENDED_MANAGEMENT_INTERFACE_DATA_REGISTER => {
+                    let selected = self.selected_extended_register();
+                    self.extended_reads.push(selected);
+                    *self.extended.get(&selected).unwrap_or(&0)
+                }
+                Some(o) if o == physical_layer_device::registers::PHYSICAL_LAYER_DEVICE_STATUS_REGISTER => {
+                    let link = self.link_up && !self.link_latched_low;
+                    self.link_latched_low = false;
+                    if link { 0x0004 } else { 0 }
+                }
+                Some(o) => *self.physical_layer_device_registers.get(&o).unwrap_or(&0),
+            };
             self.mac.insert(
                 mac_mdic(),
                 (value & !0xffff)
                     | u32::from(data)
                     | management_data_interface_control::MANAGEMENT_DATA_IO_TRANSACTION_READY,
             );
+        }
+    }
+
+    fn selected_extended_register(&self) -> u16 {
+        *self
+            .physical_layer_device_registers
+            .get(&physical_layer_device::registers::EXTENDED_MANAGEMENT_INTERFACE_SELECT_REGISTER)
+            .unwrap_or(&0)
+    }
+
+    /// `KMRNCTRLSTA`: with `REN` the offset's data lands in the low half at once; without, the
+    /// low half is written to the offset.
+    fn kumeran_access(&mut self, value: u32) {
+        let offset = value >> 16 & 0x1f;
+        if value & 0x0020_0000 != 0 {
+            let data = *self.kumeran.get(&offset).unwrap_or(&0);
+            self.mac.insert(
+                registers::KUMERAN_CONTROL_AND_STATUS_REGISTER,
+                (value & !0xffff) | u32::from(data),
+            );
+        } else {
+            self.kumeran.insert(offset, value as u16);
+            self.kumeran_writes.push((offset, value as u16));
+            self.mac
+                .insert(registers::KUMERAN_CONTROL_AND_STATUS_REGISTER, value);
         }
     }
 
@@ -340,6 +408,7 @@ impl Hardware for SimulatedHardware {
                 self.flash_write(value);
             }
             o if o == registers::STRAP_REGISTER => self.strap_writes.push(value),
+            o if o == registers::KUMERAN_CONTROL_AND_STATUS_REGISTER => self.kumeran_access(value),
             _ => {
                 self.mac.insert(offset, value);
             }
