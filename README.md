@@ -149,8 +149,14 @@ then was 46cf612d (2026-08-30). The author copied the notice of `if_em.c` and `i
   only against the simulator, which cannot model the platform's answer to a latency tolerance
   report or the timing of the PHY's indirect registers. It does not configure flow control and
   never turns Energy Efficient Ethernet on.
-- No version of this crate has run on an I219. Only the simulator, which is this crate's reading of
-  FreeBSD, checks the port.
+- One I219 has run the crate with a cable: a Sunrise Point I219 (`8086:15e3`) on the machine
+  xenon, cabled to a gigabit switch, at commit `a583ffe` on 2026-11-28 (UTC). The three passes
+  returned, and `Hardware::note` received `ManagementEngineUltraLowPowerExit`,
+  `PhysicalLayerDeviceReached` and `LocalAreaNetworkConnectedDeviceConfigured`, in that order.
+  `DEVICE_STATUS_LINK_UP` rose with the PHY's link, at 1000 Mbit/s full duplex, without the link-up
+  half. Frames passed on receive and on transmit: the controller counted 71846 good frames received
+  and 35780 transmitted, with no cyclic redundancy check (CRC) errors and none missed. Only the
+  simulator, which is this crate's reading of FreeBSD, checks other I219 parts.
 - Legacy descriptors on the I219 are an assumption from the 8254x lineage.
 
 ## Minimum Rust version

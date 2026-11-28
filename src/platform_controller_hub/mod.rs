@@ -86,8 +86,11 @@
 
 //! # BUGS
 //!
-//! - **It has run on silicon once, with no cable.** Otherwise it is proven only against `simulator`,
-//!   which is this crate's reading of FreeBSD and not the device.
+//! - **It has run with a cable on one I219**, a Sunrise Point `8086:15e3`, at `a583ffe` on
+//!   2026-11-28. The three passes returned, the link came up at 1000 Mbit/s full duplex with
+//!   `DEVICE_STATUS_LINK_UP` set, and frames passed on receive and on transmit with no CRC errors
+//!   and none missed. Any other part is proven only against `simulator`, which is this crate's
+//!   reading of FreeBSD and not the device.
 //! - **The link-up half is proven only against `simulator`** ([`link::check_for_copper_link`]).
 //!   The simulator answers each Extended Management Interface and Kumeran access at once and never
 //!   fails one mid-sequence, and it latches PHY status low only when a test asks. It cannot say what
