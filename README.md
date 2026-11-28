@@ -148,8 +148,14 @@ then was 46cf612d (2026-08-30). The author copied the notice of `if_em.c` and `i
 - The crate does not port the I219's link-up half, so it does not reconfigure the PHY when link
   comes up. A link that comes up and then loses frames points there first. The crate does not
   configure flow control.
-- No version of this crate has run on an I219. Only the simulator, which is this crate's reading of
-  FreeBSD, checks the port.
+- One I219 has run the crate with a cable: a Sunrise Point I219 (`8086:15e3`) on the machine
+  xenon, cabled to a gigabit switch, at commit `a583ffe` on 2026-11-28 (UTC). The three passes
+  returned, and `Hardware::note` received `ManagementEngineUltraLowPowerExit`,
+  `PhysicalLayerDeviceReached` and `LocalAreaNetworkConnectedDeviceConfigured`, in that order.
+  `DEVICE_STATUS_LINK_UP` rose with the PHY's link, at 1000 Mbit/s full duplex, without the link-up
+  half. Frames passed on receive and on transmit: the controller counted 71846 good frames received
+  and 35780 transmitted, with no cyclic redundancy check (CRC) errors and none missed. Only the
+  simulator, which is this crate's reading of FreeBSD, checks other I219 parts.
 - Legacy descriptors on the I219 are an assumption from the 8254x lineage.
 
 ## Minimum Rust version
